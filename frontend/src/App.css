@@ -1,0 +1,499 @@
+/* App.css */
+.App {
+  text-align: left;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2.2em;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+  background: #e9ecef;
+}
+
+.tab.active {
+  background: white;
+  border-bottom: 3px solid #007bff;
+  color: #007bff;
+}
+
+/* Tab Content */
+.tab-content {
+  background: white;
+  padding: 30px;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-height: 500px;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* Buttons */
+.btn-primary {
+  background: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  margin-left: 10px;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+.btn-quick {
+  background: #f8f9fa;
+  color: #495057;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-quick:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+/* Result Containers */
+.result-container {
+  margin-top: 20px;
+}
+
+.result-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.result-code,
+.result-text {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 15px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Chat Interface */
+.chat-container {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.chat-messages {
+  height: 400px;
+  overflow-y: auto;
+  padding: 15px;
+  background: #fafafa;
+}
+
+.message {
+  margin-bottom: 15px;
+  display: flex;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.assistant {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.message.user .message-content {
+  background: #007bff;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant .message-content {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-bottom-left-radius: 4px;
+}
+
+.message-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+/* Clean markdown styling for chat messages */
+.message-content .whitespace-pre-wrap {
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.message-content .whitespace-pre-wrap h1,
+.message-content .whitespace-pre-wrap h2,
+.message-content .whitespace-pre-wrap h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+  color: inherit;
+}
+
+.message-content .whitespace-pre-wrap strong {
+  font-weight: 600;
+}
+
+.message-content .whitespace-pre-wrap em {
+  font-style: italic;
+}
+
+.message-content .whitespace-pre-wrap ul,
+.message-content .whitespace-pre-wrap ol {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
+.message-content .whitespace-pre-wrap li {
+  margin: 2px 0;
+}
+
+.chat-input-container {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input-container textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 60px;
+  max-height: 120px;
+}
+
+.chat-input-container button {
+  flex-shrink: 0;
+  height: 60px;
+}
+
+/* Todo Tab Specific Styles */
+.todo-tab h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.login-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.login-status label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.status-text {
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.login-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.ai-info {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.ai-info h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.ai-info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ai-info li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.quick-actions {
+  margin: 20px 0;
+}
+
+.quick-actions h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.examples-section {
+  margin: 20px 0;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.examples-section summary {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+}
+
+.examples-section summary:hover {
+  background: #e9ecef;
+}
+
+.examples-grid {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.examples-column h4,
+.suggestions-column h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.examples-list {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.example-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 14px;
+}
+
+.example-item:last-child {
+  border-bottom: none;
+}
+
+.suggestions-content {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.suggestions-content pre {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+/* Upload Tab Specific */
+.upload-tab p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Project Tab Specific */
+.project-tab p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* RAG Chat Tab Specific */
+.rag-chat-tab p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .tabs {
+    flex-direction: column;
+  }
+  
+  .tab {
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0;
+  }
+  
+  .tab.active {
+    border-bottom: 1px solid #007bff;
+    border-left: 3px solid #007bff;
+  }
+  
+  .login-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .login-buttons {
+    justify-content: center;
+  }
+  
+  .examples-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .message-content {
+    max-width: 85%;
+  }
+  
+  .chat-input-container {
+    flex-direction: column;
+  }
+  
+  .chat-input-container button {
+    height: auto;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8em;
+  }
+  
+  .tab-content {
+    padding: 20px 15px;
+  }
+  
+  .quick-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-quick {
+    text-align: left;
+    margin: 2px 0;
+  }
+}

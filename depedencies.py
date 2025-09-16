@@ -36,11 +36,11 @@ from azure.storage.blob import (
 from azure.ai.formrecognizer import DocumentAnalysisClient
 
 # UI
-import gradio as gr
-try:
-    from gradio.routes import mount_gradio_app  # gradio >= 3.32
-except Exception:
-    mount_gradio_app = None
+#import gradio as gr
+#try:
+#    from gradio.routes import mount_gradio_app  # gradio >= 3.32
+#except Exception:
+#    mount_gradio_app = None
 
 # supaya bisa dipakai di file lain tanpa wildcard *
 __all__ = [
@@ -62,5 +62,5 @@ __all__ = [
     "BlobSasPermissions", "ContentSettings",
     "DocumentAnalysisClient",
     # ui
-    "gr", "mount_gradio_app"
+    #"gr", "mount_gradio_app"
 ]
