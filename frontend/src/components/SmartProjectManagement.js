@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Send, LogIn, LogOut, RefreshCw, List, BarChart3, AlertTriangle, Target, Calendar, MessageCircle } from 'lucide-react';
+import { Send, List, BarChart3, AlertTriangle, Target, Calendar, MessageCircle } from 'lucide-react';
 import { useChat } from '../contexts/chatcontext';
 import MarkdownRenderer from './MarkdownRenderer';
 
 const API_BASE = 'http://localhost:8001';
 
 function SmartProjectApp() {
-  const [authStatus, setAuthStatus] = useState({
-    authenticated: false,
-    status: 'Checking...',
-    loading: true
-  });
-  
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [projectDetail, setProjectDetail] = useState(null);
@@ -22,40 +16,12 @@ function SmartProjectApp() {
   
   const [loading, setLoading] = useState({
     projects: false,
-    projectDetail: false,
-    auth: false
+    projectDetail: false
   });
 
   useEffect(() => {
-    checkAuthStatus();
+    fetchProjects();
   }, []);
-
-  useEffect(() => {
-    if (authStatus.authenticated) {
-      fetchProjects();
-    }
-  }, [authStatus.authenticated]);
-
-  const checkAuthStatus = async () => {
-    setAuthStatus(prev => ({ ...prev, loading: true }));
-    try {
-      const response = await fetch(`${API_BASE}/project/status`);
-      const data = await response.json();
-      
-      setAuthStatus({
-        authenticated: data.authenticated || false,
-        status: data.status || 'Unknown status',
-        loading: false
-      });
-    } catch (error) {
-      console.error('Auth status error:', error);
-      setAuthStatus({
-        authenticated: false,
-        status: 'Error checking authentication',
-        loading: false
-      });
-    }
-  };
 
   const fetchProjects = async () => {
     setLoading(prev => ({ ...prev, projects: true }));
@@ -77,9 +43,6 @@ function SmartProjectApp() {
         } else {
           projectList = Object.values(data.projects);
         }
-      } else if (data.error) {
-        console.error('Projects API Error:', data.error);
-        projectList = [];
       }
       
       setProjects(projectList);
@@ -89,55 +52,6 @@ function SmartProjectApp() {
       setProjects([]);
     }
     setLoading(prev => ({ ...prev, projects: false }));
-  };
-
-  const handleLogin = async () => {
-    setLoading(prev => ({ ...prev, auth: true }));
-    try {
-      const response = await fetch(`${API_BASE}/project/login`);
-      const data = await response.json();
-      
-      if (data.auth_url) {
-        const loginWindow = window.open(data.auth_url, '_blank', 'width=600,height=700');
-        setAuthStatus(prev => ({ ...prev, status: 'Login window opened. Please complete authentication...' }));
-        
-        const checkWindow = setInterval(() => {
-          if (loginWindow && loginWindow.closed) {
-            clearInterval(checkWindow);
-            setTimeout(checkAuthStatus, 1000);
-          }
-        }, 1000);
-        
-        setTimeout(() => clearInterval(checkWindow), 300000);
-        
-      } else if (data.error) {
-        setAuthStatus(prev => ({ ...prev, status: `Login error: ${data.error}` }));
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setAuthStatus(prev => ({ ...prev, status: 'Error opening login' }));
-    }
-    setLoading(prev => ({ ...prev, auth: false }));
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE}/project/logout`);
-      setAuthStatus({
-        authenticated: false,
-        status: 'Logged out successfully',
-        loading: false
-      });
-      setProjects([]);
-      setProjectDetail(null);
-      setChatMessages([{
-        role: 'assistant',
-        content: 'Session ended. Please login to continue using project features.',
-        timestamp: new Date().toISOString()
-      }]);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
   };
 
   const fetchProjectDetail = async (projectName) => {
@@ -162,7 +76,6 @@ function SmartProjectApp() {
       timestamp: new Date().toISOString()
     };
 
-    // Add user message immediately
     setChatMessages([...chatMessages, userMessage]);
     setCurrentMessage('');
     setChatLoading(true);
@@ -182,7 +95,6 @@ function SmartProjectApp() {
         timestamp: new Date().toISOString()
       };
 
-      // Add assistant message
       setChatMessages([...chatMessages, userMessage, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
@@ -240,19 +152,13 @@ function SmartProjectApp() {
     if (projects.length === 0) {
       return (
         <div className="text-gray-500 text-center py-4">
-          {authStatus.authenticated ? (
-            <div>
-              <div>No projects found</div>
-              <button 
-                onClick={fetchProjects}
-                className="text-blue-600 underline mt-2"
-              >
-                Refresh
-              </button>
-            </div>
-          ) : (
-            'Login required'
-          )}
+          <div>No projects found</div>
+          <button 
+            onClick={fetchProjects}
+            className="text-blue-600 underline mt-2"
+          >
+            Refresh
+          </button>
         </div>
       );
     }
@@ -284,49 +190,6 @@ function SmartProjectApp() {
           <p className="text-lg text-gray-600">AI-Powered Project Analysis & Insights</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className={`w-3 h-3 rounded-full ${authStatus.authenticated ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <div>
-                <span className="font-semibold">Status: </span>
-                <span className={authStatus.authenticated ? 'text-green-600' : 'text-red-600'}>
-                  {authStatus.loading ? 'Checking...' : authStatus.status}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex space-x-2">
-              {!authStatus.authenticated ? (
-                <button
-                  onClick={handleLogin}
-                  disabled={loading.auth}
-                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <LogIn size={16} />
-                  <span>{loading.auth ? 'Opening...' : 'Login Microsoft'}</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                >
-                  <LogOut size={16} />
-                  <span>Logout</span>
-                </button>
-              )}
-              
-              <button
-                onClick={checkAuthStatus}
-                className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-              >
-                <RefreshCw size={16} />
-                <span>Refresh</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -343,7 +206,7 @@ function SmartProjectApp() {
               <div className="space-y-2">
                 <button 
                   onClick={() => handleQuickAction('list project')}
-                  disabled={!authStatus.authenticated || chatLoading}
+                  disabled={chatLoading}
                   className="w-full flex items-center space-x-2 p-2 text-left bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <List size={16} />
@@ -351,7 +214,7 @@ function SmartProjectApp() {
                 </button>
                 <button 
                   onClick={() => handleQuickAction('portfolio overview')}
-                  disabled={!authStatus.authenticated || chatLoading}
+                  disabled={chatLoading}
                   className="w-full flex items-center space-x-2 p-2 text-left bg-green-50 hover:bg-green-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <BarChart3 size={16} />
@@ -359,7 +222,7 @@ function SmartProjectApp() {
                 </button>
                 <button 
                   onClick={() => handleQuickAction('problem analysis')}
-                  disabled={!authStatus.authenticated || chatLoading}
+                  disabled={chatLoading}
                   className="w-full flex items-center space-x-2 p-2 text-left bg-orange-50 hover:bg-orange-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <AlertTriangle size={16} />
@@ -367,7 +230,7 @@ function SmartProjectApp() {
                 </button>
                 <button 
                   onClick={() => handleQuickAction('priority ranking')}
-                  disabled={!authStatus.authenticated || chatLoading}
+                  disabled={chatLoading}
                   className="w-full flex items-center space-x-2 p-2 text-left bg-purple-50 hover:bg-purple-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Target size={16} />
@@ -375,7 +238,7 @@ function SmartProjectApp() {
                 </button>
                 <button 
                   onClick={() => handleQuickAction('weekly summary')}
-                  disabled={!authStatus.authenticated || chatLoading}
+                  disabled={chatLoading}
                   className="w-full flex items-center space-x-2 p-2 text-left bg-indigo-50 hover:bg-indigo-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Calendar size={16} />
@@ -392,11 +255,6 @@ function SmartProjectApp() {
                   <MessageCircle className="mr-2" size={20} />
                   Smart Project Chat
                 </h3>
-                <div className={`px-3 py-1 rounded-full text-sm ${
-                  authStatus.authenticated ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {authStatus.authenticated ? 'Connected' : 'Not Connected'}
-                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -444,21 +302,18 @@ function SmartProjectApp() {
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
-                    placeholder={authStatus.authenticated ? "Ask about your projects..." : "Please login first..."}
-                    disabled={!authStatus.authenticated || chatLoading}
+                    placeholder="Ask about your projects..."
+                    disabled={chatLoading}
                     className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   />
                   <button
                     onClick={() => sendChatMessage()}
-                    disabled={!authStatus.authenticated || chatLoading || !currentMessage.trim()}
+                    disabled={chatLoading || !currentMessage.trim()}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
                     <Send size={16} />
                   </button>
                 </div>
-                {!authStatus.authenticated && (
-                  <p className="text-sm text-gray-500 mt-2">Please login first to start chatting with the AI assistant.</p>
-                )}
               </div>
             </div>
           </div>

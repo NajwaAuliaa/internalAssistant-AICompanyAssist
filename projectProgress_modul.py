@@ -6,196 +6,21 @@ from datetime import datetime, timedelta,timezone
 from typing import Dict, List, Optional, Any
 import json
 from pydantic import BaseModel, Field
-import secrets
-import base64
-import hashlib
-import urllib.parse
 
-# Centralized Token Management System
-class TokenManager:
-    _instance = None
-    _tokens: Dict[str, dict] = {}
-    _pkce_data: Dict[str, dict] = {}  # Store PKCE data for each auth session
-    
-    def _new_(cls):
-        if cls._instance is None:
-            cls.instance = super(TokenManager, cls).new_(cls)
-        return cls._instance
-    
-    def set_token(self, user_id: str, token_data: dict):
-        self._tokens[user_id] = token_data
-    
-    def get_token(self, user_id: str = "current_user") -> Optional[dict]:
-        return self._tokens.get(user_id)
-    
-    def clear_token(self, user_id: str = "current_user"):
-        if user_id in self._tokens:
-            del self._tokens[user_id]
-        if user_id in self._pkce_data:
-            del self._pkce_data[user_id]
-    
-    def has_token(self, user_id: str = "current_user") -> bool:
-        token_data = self._tokens.get(user_id)
-        return token_data is not None and "access_token" in token_data
-    
-    def set_pkce_data(self, user_id: str, pkce_data: dict):
-        """Store PKCE code_verifier and code_challenge for the auth session"""
-        self._pkce_data[user_id] = pkce_data
-    
-    def get_pkce_data(self, user_id: str = "current_user") -> Optional[dict]:
-        """Retrieve PKCE data (don't remove yet, we need it for token exchange)"""
-        return self._pkce_data.get(user_id)
-    
-    def clear_pkce_data(self, user_id: str = "current_user"):
-        """Remove PKCE data after successful token exchange"""
-        if user_id in self._pkce_data:
-            del self._pkce_data[user_id]
+from unified_auth import (
+    unified_token_manager as token_manager,
+    build_unified_auth_url as build_auth_url,
+    is_unified_authenticated as is_user_authenticated,
+    get_unified_token as get_unified_token,
+    get_unified_login_status as get_unified_login_status
+)
 
-# Global token manager instance
-token_manager = TokenManager()
-
-def generate_pkce_params() -> Dict[str, str]:
-    """Generate PKCE code_verifier and code_challenge"""
-    # Generate code_verifier (43-128 characters, URL-safe)
-    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
-    
-    # Generate code_challenge (SHA256 hash of code_verifier, base64url encoded)
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode('utf-8')).digest()
-    ).decode('utf-8').rstrip('=')
-    
-    return {
-        'code_verifier': code_verifier,
-        'code_challenge': code_challenge,
-        'code_challenge_method': 'S256'
-    }
-
-def build_auth_url() -> str:
-    """Build authorization URL for SPA with PKCE"""
-    
-    # Generate PKCE parameters
-    pkce_params = generate_pkce_params()
-    
-    # Store PKCE data for later use in token exchange
-    session_key = "current_user"
-    token_manager.set_pkce_data(session_key, pkce_params)
-    
-    # Generate state for security
-    state = secrets.token_urlsafe(32)
-    
-    # Microsoft OAuth2 authorization endpoint
-    auth_endpoint = f"https://login.microsoftonline.com/{settings.MS_TENANT_ID}/oauth2/v2.0/authorize"
-    
-    # Scopes yang dibutuhkan untuk Planner (delegated)
-    scopes = [
-        "https://graph.microsoft.com/User.Read",
-        "https://graph.microsoft.com/Tasks.Read",
-        "https://graph.microsoft.com/Group.Read.All"
-    ]
-    
-    # Build authorization URL parameters for SPA
-    params = {
-        'client_id': settings.MS_CLIENT_ID,
-        'response_type': 'code',  # Still using code for SPA with PKCE
-        'redirect_uri': 'http://localhost:8001/project/auth/callback',
-        'scope': ' '.join(scopes),
-        'state': state,
-        'code_challenge': pkce_params['code_challenge'],
-        'code_challenge_method': pkce_params['code_challenge_method'],
-        'response_mode': 'query'
-    }
-    
-    # Store state for validation
-    pkce_params['state'] = state
-    token_manager.set_pkce_data(session_key, pkce_params)
-    
-    # Build the complete authorization URL
-    auth_url = f"{auth_endpoint}?{urllib.parse.urlencode(params)}"
-    
-    print(f"Generated SPA auth URL with PKCE parameters")
-    print(f"Code challenge: {pkce_params['code_challenge'][:20]}...")
-    
-    return auth_url
-
-def exchange_code_for_token(auth_code: str, state: str = None) -> Optional[dict]:
-    """Exchange authorization code for access token with PKCE for SPA"""
-    try:
-        # Retrieve PKCE data
-        session_key = "current_user"
-        pkce_data = token_manager.get_pkce_data(session_key)
-        
-        if not pkce_data:
-            raise Exception("PKCE data not found. Please restart the authentication process.")
-        
-        # Validate state if provided
-        if state and pkce_data.get('state') != state:
-            raise Exception("State validation failed. Possible CSRF attack.")
-        
-        # Microsoft OAuth2 token endpoint
-        token_endpoint = f"https://login.microsoftonline.com/{settings.MS_TENANT_ID}/oauth2/v2.0/token"
-
-        # Scopes yang dibutuhkan
-        scopes = [
-            "https://graph.microsoft.com/User.Read",
-            "https://graph.microsoft.com/Tasks.Read", 
-            "https://graph.microsoft.com/Group.Read.All"
-        ]
-        
-        # Prepare token exchange data for SPA
-        token_data = {
-            'client_id': settings.MS_CLIENT_ID,
-            'grant_type': 'authorization_code',
-            'code': auth_code,
-            'redirect_uri': 'http://localhost:8001/project/auth/callback',
-            'code_verifier': pkce_data['code_verifier'],  # PKCE parameter
-            'scope': ' '.join(scopes)
-            # Note: No client_secret for SPA
-        }
-        
-        print(f"Exchanging code for SPA with PKCE verifier: {pkce_data['code_verifier'][:20]}...")
-        
-        # Make token exchange request
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'http://localhost:8001'  # Add origin header for SPA
-        }
-        
-        response = requests.post(token_endpoint, data=token_data, headers=headers)
-        
-        if response.status_code == 200:
-            token_response = response.json()
-            print(f"SPA Token acquired successfully")
-            
-            # Clear PKCE data after successful exchange
-            token_manager.clear_pkce_data(session_key)
-            
-            return token_response
-        else:
-            error_response = response.json() if response.content else {}
-            error_desc = error_response.get('error_description', 'Unknown error')
-            error_code = error_response.get('error', 'Unknown')
-            
-            print(f"SPA Token exchange failed: {response.status_code}")
-            print(f"Error response: {error_response}")
-            
-            raise Exception(f"OAuth error ({error_code}): {error_desc}")
-            
-    except Exception as e:
-        print(f"Exception in exchange_code_for_token: {str(e)}")
-        raise
+# Auth functions now handled by unified_auth.py
 
 def get_user_token(user_id: str = "current_user") -> str:
     """Get access token for current user (delegated)"""
-    token_data = token_manager.get_token(user_id)
-    if not token_data:
-        raise Exception("User belum login. Silakan login terlebih dahulu melalui /project/login endpoint")
-    
-    # Simple token expiry check (in production, implement proper refresh logic)
-    if "expires_in" in token_data:
-        # You could implement token refresh logic here
-        pass
-    
-    return token_data["access_token"]
+    from unified_auth import get_unified_token
+    return get_unified_token(user_id)
 
 def refresh_user_token(user_id: str = "current_user") -> str:
     """Refresh user token if available"""
@@ -237,7 +62,8 @@ def refresh_user_token(user_id: str = "current_user") -> str:
 
 def is_user_authenticated(user_id: str = "current_user") -> bool:
     """Check if user is authenticated"""
-    return token_manager.has_token(user_id)
+    from unified_auth import is_unified_authenticated
+    return is_unified_authenticated(user_id)
 
 def make_authenticated_request(url: str, user_id: str = "current_user", method: str = "GET", data: dict = None):
     """Helper function to make authenticated requests with error handling for SPA"""
@@ -345,21 +171,7 @@ def get_plan_buckets(plan_id: str, user_id: str = "current_user"):
 # === Authentication status functions ===
 def get_login_status(user_id: str = "current_user") -> str:
     """Get current login status"""
-    if is_user_authenticated(user_id):
-        try:
-            # Test the token by making a simple Graph call
-            url = "https://graph.microsoft.com/v1.0/me"
-            response_data = make_authenticated_request(url, user_id)
-            
-            display_name = response_data.get('displayName', 'Unknown')
-            email = response_data.get('mail') or response_data.get('userPrincipalName', 'No email')
-            
-            return f"✅ Logged in as: {display_name} ({email})"
-            
-        except Exception as e:
-            return f"❌ Authentication error: {str(e)}"
-    else:
-        return "❌ Not logged in. Please click 'Login untuk Project Management' button."
+    return get_unified_login_status(user_id)
 
 # === Rest of the functions remain the same (analyze_project_data, etc.) ===
 def analyze_project_data(project_name: str, user_id: str = "current_user") -> Dict[str, Any]:
@@ -679,7 +491,8 @@ def clear_user_token(user_id: str = "current_user"):
 
 # === Create aliases for backward compatibility with existing code ===
 project_build_auth_url = build_auth_url
-project_exchange_code_for_token = exchange_code_for_token
+from unified_auth import exchange_unified_code_for_token
+project_exchange_code_for_token = exchange_unified_code_for_token
 project_is_user_authenticated = is_user_authenticated
 project_get_login_status = get_login_status
 

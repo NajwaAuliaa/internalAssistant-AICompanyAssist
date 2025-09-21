@@ -18,7 +18,7 @@ const DEFAULT_MESSAGES = {
   project: [
     createMessage(
       "assistant",
-      "📊 Selamat datang di Project Management!\n\nAnda bisa melihat daftar project, detail project, atau progress tertentu."
+      "Saya bisa membantu Anda dengan:\n\n📊 Cek Progress Project:\n• Sudah sampai mana progress project A?\n• Bagaimana status project website baru?\n• Project mana yang paling tertinggal?\n\n📋 List & Overview:\n• Tampilkan semua project\n• Project apa saja yang sedang berjalan?\n• Berikan overview semua project\n\n⚖️ Perbandingan Project:\n• Bandingkan project A dengan project B\n• Mana yang lebih maju antara project X dan Y?\n\n🔍 Analisis Mendalam:\n• Analisis bottleneck di project A\n• Task apa yang overdue di project B?\n• Berikan insight untuk project C"
     ),
   ],
   todo: [

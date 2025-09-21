@@ -13,29 +13,35 @@ from rag_modul import (
 # Project management imports dengan alias untuk menghindari konflik
 from projectProgress_modul import (
     process_project_query, list_all_projects,
-    build_auth_url as project_build_auth_url,
-    exchange_code_for_token as project_exchange_code_for_token,
-    is_user_authenticated as project_is_user_authenticated,
-    get_login_status as project_get_login_status,
-    set_user_token, clear_user_token,
-    token_manager
+    # build_auth_url as project_build_auth_url,
+    # is_user_authenticated as project_is_user_authenticated,
+    # get_login_status as project_get_login_status,
+    # #set_user_token, clear_user_token,
+    # token_manager
 )
 
 # Todo management imports dengan alias untuk menghindari konflik
 from to_do_modul_test import (
-    build_auth_url as todo_build_auth_url,
-    exchange_code_for_token as todo_exchange_code_for_token,
-    get_login_status as todo_get_login_status,
+    # build_auth_url as todo_build_auth_url,
+    # exchange_code_for_token as todo_exchange_code_for_token,
+    # get_login_status as todo_get_login_status,
     process_todo_query_advanced,
-    is_user_logged_in as todo_is_user_logged_in,
+    # is_user_logged_in as todo_is_user_logged_in,
 )
+
+from unified_auth import(
+    build_unified_auth_url,
+    exchange_unified_code_for_token,
+    is_unified_authenticated,
+    get_unified_login_status
+)    
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 app = FastAPI(title="Internal Assistant – LangChain + Azure + UI")
@@ -159,154 +165,546 @@ def rag_chat(req: dict):
 # =====================================================
 # PROJECT MANAGEMENT - TOKEN STORAGE & ENDPOINTS
 # =====================================================
-user_project_tokens: Dict[str, dict] = {}
+# user_project_tokens: Dict[str, dict] = {}
 
-def set_project_user_token(user_id: str, token: dict):
-    """Set token untuk project management"""
-    user_project_tokens[user_id] = token
+# def set_project_user_token(user_id: str, token: dict):
+#     """Set token untuk project management"""
+#     user_project_tokens[user_id] = token
 
-def get_project_user_token(user_id: str) -> Optional[dict]:
-    """Get token untuk project management"""
-    return user_project_tokens.get(user_id)
+# def get_project_user_token(user_id: str) -> Optional[dict]:
+#     """Get token untuk project management"""
+#     return user_project_tokens.get(user_id)
 
-def clear_project_user_token(user_id: str):
-    """Clear token untuk project management"""
-    if user_id in user_project_tokens:
-        del user_project_tokens[user_id]
+# def clear_project_user_token(user_id: str):
+#     """Clear token untuk project management"""
+#     if user_id in user_project_tokens:
+#         del user_project_tokens[user_id]
 
-def is_project_user_authenticated(user_id: str) -> bool:
-    """Check apakah user sudah login untuk project management"""
-    return user_id in user_project_tokens and user_project_tokens[user_id] is not None
+# def is_project_user_authenticated(user_id: str) -> bool:
+#     """Check apakah user sudah login untuk project management"""
+#     return user_id in user_project_tokens and user_project_tokens[user_id] is not None
 
-# ===== PROJECT AUTH FLOW =====
-@app.get("/project/login")
-def project_login():
-    """
-    Endpoint login untuk project management
-    """
+# # ===== PROJECT AUTH FLOW =====
+# @app.get("/project/login")
+# def project_login():
+#     """
+#     Endpoint login untuk project management
+#     """
+#     try:
+#         auth_url = project_build_auth_url()
+#         return {"auth_url": auth_url}
+#     except Exception as e:
+#         return {"error": f"Gagal membuat login URL: {str(e)}"}
+
+# @app.get("/project/auth/callback")
+# def project_auth_callback(code: str, state: str = None):
+#     """
+#     Callback dari Microsoft untuk project management
+#     """
+#     try:
+#         token = project_exchange_code_for_token(code)
+#         if not token:
+#             raise HTTPException(status_code=400, detail="Gagal tukar code jadi token")
+
+#         set_project_user_token("current_user", token)
+
+#         return HTMLResponse("""
+#             <html>
+#                 <head>
+#                     <title>Project Login Successful</title>
+#                     <style>
+#                         body { 
+#                             font-family: Arial, sans-serif; 
+#                             margin: 40px; 
+#                             background-color: #e8f5e8; 
+#                             text-align: center;
+#                         }
+#                         .container { 
+#                             background: white; 
+#                             padding: 30px; 
+#                             border-radius: 8px; 
+#                             box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+#                             max-width: 500px;
+#                             margin: 0 auto;
+#                         }
+#                     </style>
+#                     <script>
+#                         setTimeout(function() {
+#                             window.close();
+#                         }, 3000);
+#                     </script>
+#                 </head>
+#                 <body>
+#                     <div class="container">
+#                         <h1>✅ Project Login Successful!</h1>
+#                         <p>You can now access Microsoft Project Management features.</p>
+#                         <p><small>This window will close automatically in 3 seconds...</small></p>
+#                     </div>
+#                 </body>
+#             </html>
+#         """)
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Error saat login: {str(e)}")
+
+# @app.get("/project/status")
+# def project_status():
+#     """
+#     Cek status login project management
+#     """
+#     try:
+#         if is_project_user_authenticated("current_user"):
+#             return {
+#                 "authenticated": True,
+#                 "status": "✅ Sudah login Smart Project Management",
+#                 "features_available": [
+#                     "Project Progress Analysis",
+#                     "Multi-Project Comparison",
+#                     "Portfolio Overview",
+#                     "Task Management Insights"
+#                 ],
+#                 "timestamp": datetime.now().isoformat()
+#             }
+#         else:
+#             return {
+#                 "authenticated": False,
+#                 "status": "❌ Belum login",
+#                 "login_url": "/project/login"
+#             }
+#     except Exception as e:
+#         return {"authenticated": False, "status": f"Error: {str(e)}"}
+
+# @app.get("/project/logout")
+# def project_logout():
+#     """
+#     Logout dari project management
+#     """
+#     try:
+#         clear_project_user_token("current_user")
+#         return {
+#             "status": "success",
+#             "message": "✅ Successfully logged out from Project Management",
+#             "login_url": "/project/login"
+#         }
+#     except Exception as e:
+#         return {"status": "error", "message": f"Error during logout: {str(e)}"}
+
+# @app.get("/projects")
+# def get_all_projects():
+#     """Get semua projects"""
+#     if not is_project_user_authenticated("current_user"):
+#         return {
+#             "error": "Authentication required",
+#             "message": "Please login first via /project/login",
+#             "login_url": "/project/login",
+#             "authenticated": False
+#         }
+
+#     try:
+#         # Pass token directly to ensure module uses the same token
+#         token = get_project_user_token("current_user")
+#         if token:
+#             # Import and use the module function that accepts token directly
+#             from projectProgress_modul import set_user_token
+#             set_user_token(token, "current_user")  # Sync token to module
+        
+#         result = list_all_projects("current_user")
+#         return {
+#             "status": "success",
+#             "projects": result,
+#             "authenticated": True,
+#             "timestamp": datetime.now().isoformat()
+#         }
+#     except Exception as e:
+#         return {
+#             "error": f"Error fetching projects: {str(e)}",
+#             "authenticated": True,
+#             "error_details": str(e)
+#         }
+
+# @app.get("/projects/{project_name}")
+# def get_project_detail(project_name: str):
+#     """Get detail project tertentu"""
+#     if not is_project_user_authenticated("current_user"):
+#         return {
+#             "error": "Authentication required",
+#             "message": "Please login first via /project/login",
+#             "login_url": "/project/login",
+#             "authenticated": False
+#         }
+
+#     try:
+#         result = process_project_query(f"detail progress {project_name}", "current_user")
+#         return {
+#             "status": "success",
+#             "project_detail": result,
+#             "project_name": project_name,
+#             "authenticated": True,
+#             "timestamp": datetime.now().isoformat()
+#         }
+#     except Exception as e:
+#         return {
+#             "error": f"Error fetching project detail: {str(e)}",
+#             "project_name": project_name,
+#             "authenticated": True
+#         }
+
+# @app.post("/project-chat")
+# def project_chat(req: dict):
+#     """Chat endpoint untuk project management"""
+#     message = req.get("message", "")
+#     try:
+#         if not is_project_user_authenticated("current_user"):
+#             return {"answer": "🔒 Authentication Required. Please login first via /project/login"}
+        
+#         result = process_project_query(message, "current_user")
+#         return {"answer": result}
+#     except Exception as e:
+#         return {"answer": f"❌ Error: {str(e)}"}
+
+# # =====================================================
+# # TO-DO MANAGEMENT - TOKEN STORAGE & ENDPOINTS
+# # =====================================================
+# user_todo_tokens: Dict[str, dict] = {}
+
+# def set_todo_user_token(user_id: str, token: dict):
+#     """Set token untuk todo management"""
+#     user_todo_tokens[user_id] = token
+
+# def get_todo_user_token(user_id: str) -> Optional[dict]:
+#     """Get token untuk todo management"""
+#     return user_todo_tokens.get(user_id)
+
+# def clear_todo_user_token(user_id: str):
+#     """Clear token untuk todo management"""
+#     if user_id in user_todo_tokens:
+#         del user_todo_tokens[user_id]
+
+# def is_todo_user_authenticated(user_id: str) -> bool:
+#     """Check apakah user sudah login untuk todo management"""
+#     return user_id in user_todo_tokens and user_todo_tokens[user_id] is not None
+
+# # ===== TO-DO AUTH FLOW =====
+# @app.get("/login")  # Keep original path untuk compatibility dengan Azure AD registration
+# def todo_login():
+#     """
+#     Endpoint login untuk todo management - redirect ke Microsoft
+#     """
+#     try:
+#         auth_url = todo_build_auth_url()
+#         return RedirectResponse(auth_url)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Gagal membuat login URL: {str(e)}")
+
+# @app.get("/todo/login")
+# def todo_login_api():
+#     """
+#     API endpoint untuk get login URL (for frontend)
+#     """
+#     try:
+#         auth_url = todo_build_auth_url()
+#         return {"auth_url": auth_url}
+#     except Exception as e:
+#         return {"error": f"Gagal membuat login URL: {str(e)}"}
+
+# @app.get("/auth/callback")  # KEEP ORIGINAL PATH - ini yang diexpect Microsoft
+# def todo_auth_callback(code: str, state: str = None):
+#     """
+#     Callback dari Microsoft untuk todo management
+#     """
+#     try:
+#         token = todo_exchange_code_for_token(code)
+#         if not token:
+#             raise HTTPException(status_code=400, detail="Gagal tukar code jadi token")
+
+#         set_todo_user_token("current_user", token)
+
+#         return HTMLResponse("""
+#             <html>
+#                 <head>
+#                     <title>Todo Login Successful</title>
+#                     <style>
+#                         body { 
+#                             font-family: Arial, sans-serif; 
+#                             margin: 40px; 
+#                             background-color: #e8f5e8; 
+#                             text-align: center;
+#                         }
+#                         .container { 
+#                             background: white; 
+#                             padding: 30px; 
+#                             border-radius: 8px; 
+#                             box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+#                             max-width: 500px;
+#                             margin: 0 auto;
+#                         }
+#                     </style>
+#                     <script>
+#                         setTimeout(function() {
+#                             window.close();
+#                         }, 3000);
+#                     </script>
+#                 </head>
+#                 <body>
+#                     <div class="container">
+#                         <h1>✅ Todo Login Successful!</h1>
+#                         <p>You can now access Microsoft To-Do features.</p>
+#                         <p><small>This window will close automatically in 3 seconds...</small></p>
+#                     </div>
+#                 </body>
+#             </html>
+#         """)
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Error saat login: {str(e)}")
+
+# @app.get("/todo/login-status")
+# def todo_login_status():
+#     """Check status login todo"""
+#     try:
+#         if is_todo_user_authenticated("current_user"):
+#             return {
+#                 "authenticated": True,
+#                 "status": "✅ Sudah login Microsoft To-Do"
+#             }
+#         else:
+#             # Cek juga menggunakan function dari module (fallback)
+#             try:
+#                 module_status = todo_get_login_status()
+#                 is_logged_in = todo_is_user_logged_in()
+#                 return {
+#                     "authenticated": is_logged_in,
+#                     "status": module_status
+#                 }
+#             except Exception as module_error:
+#                 return {
+#                     "authenticated": False,
+#                     "status": f"❌ Belum login. Module error: {str(module_error)}"
+#                 }
+#     except Exception as e:
+#         return {
+#             "authenticated": False,
+#             "status": f"Error: {str(e)}"
+#         }
+
+# @app.get("/todo/login-url")
+# def todo_login_url():
+#     """Get URL untuk login todo"""
+#     try:
+#         auth_url = todo_build_auth_url()
+#         return {"auth_url": auth_url}
+#     except Exception as e:
+#         return {"auth_url": None, "error": str(e)}
+
+# @app.get("/todo/logout")
+# def todo_logout():
+#     """Logout dari todo management"""
+#     try:
+#         clear_todo_user_token("current_user")
+#         return {
+#             "status": "success",
+#             "message": "✅ Successfully logged out from To-Do",
+#             "login_url": "/todo/login"
+#         }
+#     except Exception as e:
+#         return {"status": "error", "message": f"Error during logout: {str(e)}"}
+
+# @app.post("/todo-chat")
+# def todo_chat(req: dict):
+#     """Chat endpoint untuk todo management"""
+#     message = req.get("message", "")
+#     try:
+#         # Check authentication menggunakan multiple methods
+#         local_auth = is_todo_user_authenticated("current_user")
+#         module_auth = False
+        
+#         try:
+#             module_auth = todo_is_user_logged_in()
+#         except Exception:
+#             pass
+        
+#         if not local_auth and not module_auth:
+#             return {"answer": "❌ Belum login ke Microsoft To-Do. Silakan login terlebih dahulu."}
+        
+#         # Get token - prioritize local storage, fallback to module
+#         token = get_todo_user_token("current_user")
+        
+#         answer = process_todo_query_advanced(message, token)
+#         return {"answer": answer}
+#     except Exception as e:
+#         return {"answer": f"❌ Error: {str(e)}"}
+
+# =====================================================
+@app.get("/auth/microsoft")
+def unified_microsoft_login():
+    """Unified login endpoint untuk Todo dan Project Management"""
     try:
-        auth_url = project_build_auth_url()
-        return {"auth_url": auth_url}
+        auth_url = build_unified_auth_url()
+        return RedirectResponse(auth_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Auth configuration error: {str(e)}")
     except Exception as e:
-        return {"error": f"Gagal membuat login URL: {str(e)}"}
+        raise HTTPException(status_code=500, detail="Authentication service unavailable")
 
-@app.get("/project/auth/callback")
-def project_auth_callback(code: str, state: str = None):
-    """
-    Callback dari Microsoft untuk project management
-    """
+@app.get("/auth/callback")
+def unified_callback(code: str, state: str = None, error: str = None, error_description: str = None):
+    """Unified callback untuk Todo dan Project Management"""
+    import html
+    
+    print(f"DEBUG: Callback received - code: {code[:20] if code else 'None'}..., state: {state}")
+    
+    if error:
+        print(f"DEBUG: OAuth error - {error}: {error_description}")
+        safe_error = html.escape(error or "Unknown error")
+        safe_description = html.escape(error_description or "No description")
+        return HTMLResponse(f"""
+            <html><body>
+                <h1>❌ Login Error</h1>
+                <p>Error: {safe_error}</p>
+                <p>Description: {safe_description}</p>
+                <script>setTimeout(() => window.location.href='http://localhost:3000', 3000);</script>
+            </body></html>
+        """)
+    
+    if not code:
+        print("DEBUG: No code received")
+        return HTMLResponse("""
+            <html><body>
+                <h1>❌ Missing authorization code</h1>
+                <script>setTimeout(() => window.location.href='http://localhost:3000', 3000);</script>
+            </body></html>
+        """)
+    
     try:
-        token = project_exchange_code_for_token(code)
+        print("DEBUG: Attempting token exchange...")
+        token = exchange_unified_code_for_token(code, state)
+        print(f"DEBUG: Token exchange result: {token is not None}")
+        
         if not token:
-            raise HTTPException(status_code=400, detail="Gagal tukar code jadi token")
-
-        set_project_user_token("current_user", token)
-
+            raise ValueError("Token exchange failed")
+        
+        print("DEBUG: Token stored successfully")
         return HTMLResponse("""
             <html>
                 <head>
-                    <title>Project Login Successful</title>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            margin: 40px; 
-                            background-color: #e8f5e8; 
-                            text-align: center;
-                        }
-                        .container { 
-                            background: white; 
-                            padding: 30px; 
-                            border-radius: 8px; 
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-                            max-width: 500px;
-                            margin: 0 auto;
-                        }
-                    </style>
+                    <title>Login Successful</title>
                     <script>
-                        setTimeout(function() {
-                            window.close();
-                        }, 3000);
+                        setTimeout(() => window.location.href='http://localhost:3000', 2000);
                     </script>
                 </head>
                 <body>
-                    <div class="container">
-                        <h1>✅ Project Login Successful!</h1>
-                        <p>You can now access Microsoft Project Management features.</p>
-                        <p><small>This window will close automatically in 3 seconds...</small></p>
-                    </div>
+                    <h1>✅ Login Successful!</h1>
+                    <p>Microsoft To-Do dan Smart Project Management sudah tersedia!</p>
+                    <p><small>Redirecting to app...</small></p>
+                </body>
+            </html>
+        """)
+    except ValueError as e:
+        print(f"DEBUG: ValueError in token exchange: {str(e)}")
+        safe_error = html.escape(str(e))
+        return HTMLResponse(f"""
+            <html>
+                <body>
+                    <h1>❌ Login Error</h1>
+                    <p>Error: {safe_error}</p>
+                    <script>setTimeout(() => window.location.href='http://localhost:3000', 3000);</script>
                 </body>
             </html>
         """)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error saat login: {str(e)}")
+        print(f"DEBUG: Exception in token exchange: {str(e)}")
+        return HTMLResponse("""
+            <html>
+                <body>
+                    <h1>❌ Login Error</h1>
+                    <p>Authentication failed. Please try again.</p>
+                    <script>setTimeout(() => window.location.href='http://localhost:3000', 3000);</script>
+                </body>
+            </html>
+        """)
 
 @app.get("/project/status")
 def project_status():
-    """
-    Cek status login project management
-    """
     try:
-        if is_project_user_authenticated("current_user"):
+        if is_unified_authenticated("current_user"):
             return {
                 "authenticated": True,
                 "status": "✅ Sudah login Smart Project Management",
                 "features_available": [
                     "Project Progress Analysis",
-                    "Multi-Project Comparison",
+                    "Multi-Project Comparison", 
                     "Portfolio Overview",
                     "Task Management Insights"
                 ],
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         else:
             return {
                 "authenticated": False,
                 "status": "❌ Belum login",
-                "login_url": "/project/login"
+                "login_url": "/auth/microsoft"
             }
     except Exception as e:
         return {"authenticated": False, "status": f"Error: {str(e)}"}
 
-@app.get("/project/logout")
-def project_logout():
-    """
-    Logout dari project management
-    """
+@app.get("/todo/login-status")
+def todo_login_status():
     try:
-        clear_project_user_token("current_user")
-        return {
-            "status": "success",
-            "message": "✅ Successfully logged out from Project Management",
-            "login_url": "/project/login"
-        }
+        if is_unified_authenticated("current_user"):
+            return {
+                "authenticated": True,
+                "status": "✅ Sudah login Microsoft To-Do"
+            }
+        else:
+            return {
+                "authenticated": False,
+                "status": "❌ Belum login"
+            }
     except Exception as e:
-        return {"status": "error", "message": f"Error during logout: {str(e)}"}
+        return {
+            "authenticated": False,
+            "status": f"Error: {str(e)}"
+        }
 
+@app.post("/project-chat")
+def project_chat(req: dict):
+    message = req.get("message", "")
+    try:
+        if not is_unified_authenticated("current_user"):
+            return {"answer": "🔒 Authentication Required. Please login first"}
+        
+        result = process_project_query(message, "current_user")
+        return {"answer": result}
+    except Exception as e:
+        return {"answer": f"❌ Error: {str(e)}"}
+
+@app.post("/todo-chat")
+def todo_chat(req: dict):
+    message = req.get("message", "")
+    try:
+        if not is_unified_authenticated("current_user"):
+            return {"answer": "❌ Belum login. Silakan login terlebih dahulu."}
+        
+        answer = process_todo_query_advanced(message, None)  # token sudah dihandle di module
+        return {"answer": answer}
+    except Exception as e:
+        return {"answer": f"❌ Error: {str(e)}"}
+    
 @app.get("/projects")
 def get_all_projects():
-    """Get semua projects"""
-    if not is_project_user_authenticated("current_user"):
+    if not is_unified_authenticated("current_user"):
         return {
             "error": "Authentication required",
-            "message": "Please login first via /project/login",
-            "login_url": "/project/login",
+            "message": "Please login first",
+            "login_url": "/auth/microsoft",
             "authenticated": False
         }
 
     try:
-        # Pass token directly to ensure module uses the same token
-        token = get_project_user_token("current_user")
-        if token:
-            # Import and use the module function that accepts token directly
-            from projectProgress_modul import set_user_token
-            set_user_token(token, "current_user")  # Sync token to module
-        
         result = list_all_projects("current_user")
         return {
-            "status": "success",
+            "status": "success", 
             "projects": result,
             "authenticated": True,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         return {
@@ -314,217 +712,6 @@ def get_all_projects():
             "authenticated": True,
             "error_details": str(e)
         }
-
-@app.get("/projects/{project_name}")
-def get_project_detail(project_name: str):
-    """Get detail project tertentu"""
-    if not is_project_user_authenticated("current_user"):
-        return {
-            "error": "Authentication required",
-            "message": "Please login first via /project/login",
-            "login_url": "/project/login",
-            "authenticated": False
-        }
-
-    try:
-        result = process_project_query(f"detail progress {project_name}", "current_user")
-        return {
-            "status": "success",
-            "project_detail": result,
-            "project_name": project_name,
-            "authenticated": True,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "error": f"Error fetching project detail: {str(e)}",
-            "project_name": project_name,
-            "authenticated": True
-        }
-
-@app.post("/project-chat")
-def project_chat(req: dict):
-    """Chat endpoint untuk project management"""
-    message = req.get("message", "")
-    try:
-        if not is_project_user_authenticated("current_user"):
-            return {"answer": "🔒 Authentication Required. Please login first via /project/login"}
-        
-        result = process_project_query(message, "current_user")
-        return {"answer": result}
-    except Exception as e:
-        return {"answer": f"❌ Error: {str(e)}"}
-
-# =====================================================
-# TO-DO MANAGEMENT - TOKEN STORAGE & ENDPOINTS
-# =====================================================
-user_todo_tokens: Dict[str, dict] = {}
-
-def set_todo_user_token(user_id: str, token: dict):
-    """Set token untuk todo management"""
-    user_todo_tokens[user_id] = token
-
-def get_todo_user_token(user_id: str) -> Optional[dict]:
-    """Get token untuk todo management"""
-    return user_todo_tokens.get(user_id)
-
-def clear_todo_user_token(user_id: str):
-    """Clear token untuk todo management"""
-    if user_id in user_todo_tokens:
-        del user_todo_tokens[user_id]
-
-def is_todo_user_authenticated(user_id: str) -> bool:
-    """Check apakah user sudah login untuk todo management"""
-    return user_id in user_todo_tokens and user_todo_tokens[user_id] is not None
-
-# ===== TO-DO AUTH FLOW =====
-@app.get("/login")  # Keep original path untuk compatibility dengan Azure AD registration
-def todo_login():
-    """
-    Endpoint login untuk todo management - redirect ke Microsoft
-    """
-    try:
-        auth_url = todo_build_auth_url()
-        return RedirectResponse(auth_url)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal membuat login URL: {str(e)}")
-
-@app.get("/todo/login")
-def todo_login_api():
-    """
-    API endpoint untuk get login URL (for frontend)
-    """
-    try:
-        auth_url = todo_build_auth_url()
-        return {"auth_url": auth_url}
-    except Exception as e:
-        return {"error": f"Gagal membuat login URL: {str(e)}"}
-
-@app.get("/auth/callback")  # KEEP ORIGINAL PATH - ini yang diexpect Microsoft
-def todo_auth_callback(code: str, state: str = None):
-    """
-    Callback dari Microsoft untuk todo management
-    """
-    try:
-        token = todo_exchange_code_for_token(code)
-        if not token:
-            raise HTTPException(status_code=400, detail="Gagal tukar code jadi token")
-
-        set_todo_user_token("current_user", token)
-
-        return HTMLResponse("""
-            <html>
-                <head>
-                    <title>Todo Login Successful</title>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            margin: 40px; 
-                            background-color: #e8f5e8; 
-                            text-align: center;
-                        }
-                        .container { 
-                            background: white; 
-                            padding: 30px; 
-                            border-radius: 8px; 
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-                            max-width: 500px;
-                            margin: 0 auto;
-                        }
-                    </style>
-                    <script>
-                        setTimeout(function() {
-                            window.close();
-                        }, 3000);
-                    </script>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>✅ Todo Login Successful!</h1>
-                        <p>You can now access Microsoft To-Do features.</p>
-                        <p><small>This window will close automatically in 3 seconds...</small></p>
-                    </div>
-                </body>
-            </html>
-        """)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error saat login: {str(e)}")
-
-@app.get("/todo/login-status")
-def todo_login_status():
-    """Check status login todo"""
-    try:
-        if is_todo_user_authenticated("current_user"):
-            return {
-                "authenticated": True,
-                "status": "✅ Sudah login Microsoft To-Do"
-            }
-        else:
-            # Cek juga menggunakan function dari module (fallback)
-            try:
-                module_status = todo_get_login_status()
-                is_logged_in = todo_is_user_logged_in()
-                return {
-                    "authenticated": is_logged_in,
-                    "status": module_status
-                }
-            except Exception as module_error:
-                return {
-                    "authenticated": False,
-                    "status": f"❌ Belum login. Module error: {str(module_error)}"
-                }
-    except Exception as e:
-        return {
-            "authenticated": False,
-            "status": f"Error: {str(e)}"
-        }
-
-@app.get("/todo/login-url")
-def todo_login_url():
-    """Get URL untuk login todo"""
-    try:
-        auth_url = todo_build_auth_url()
-        return {"auth_url": auth_url}
-    except Exception as e:
-        return {"auth_url": None, "error": str(e)}
-
-@app.get("/todo/logout")
-def todo_logout():
-    """Logout dari todo management"""
-    try:
-        clear_todo_user_token("current_user")
-        return {
-            "status": "success",
-            "message": "✅ Successfully logged out from To-Do",
-            "login_url": "/todo/login"
-        }
-    except Exception as e:
-        return {"status": "error", "message": f"Error during logout: {str(e)}"}
-
-@app.post("/todo-chat")
-def todo_chat(req: dict):
-    """Chat endpoint untuk todo management"""
-    message = req.get("message", "")
-    try:
-        # Check authentication menggunakan multiple methods
-        local_auth = is_todo_user_authenticated("current_user")
-        module_auth = False
-        
-        try:
-            module_auth = todo_is_user_logged_in()
-        except Exception:
-            pass
-        
-        if not local_auth and not module_auth:
-            return {"answer": "❌ Belum login ke Microsoft To-Do. Silakan login terlebih dahulu."}
-        
-        # Get token - prioritize local storage, fallback to module
-        token = get_todo_user_token("current_user")
-        
-        answer = process_todo_query_advanced(message, token)
-        return {"answer": answer}
-    except Exception as e:
-        return {"answer": f"❌ Error: {str(e)}"}
 
 @app.get("/todo/examples")
 def todo_examples():
@@ -597,6 +784,43 @@ def chat(req: ChatRequest):
         if settings.debug:
             raise
         raise HTTPException(status_code=500, detail=str(e))
+
+# Tambah endpoint debug
+@app.get("/auth/debug")
+def auth_debug():
+    from unified_auth import unified_token_manager
+    token_data = unified_token_manager.get_token("current_user")
+    return {
+        "has_token": token_data is not None,
+        "token_keys": list(token_data.keys()) if token_data else None,
+        "is_authenticated": is_unified_authenticated("current_user")
+    }
+
+@app.get("/auth/status") 
+def auth_status():
+    return {
+        "authenticated": is_unified_authenticated("current_user"),
+        "status": get_unified_login_status("current_user") if is_unified_authenticated("current_user") else "Not logged in"
+    }
+
+@app.post("/auth/logout")
+def logout():
+    """Logout endpoint that clears unified token"""
+    try:
+        from unified_auth import clear_unified_token
+        clear_unified_token("current_user")
+        return {
+            "status": "success",
+            "message": "Successfully logged out",
+            "authenticated": False
+        }
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Logout error: {str(e)}",
+            "authenticated": False
+        }
+
 
 # ========== DEV RUN ==========
 if __name__ == "__main__":

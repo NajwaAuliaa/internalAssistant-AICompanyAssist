@@ -1,67 +1,151 @@
-import React from 'react';
-import { Package, FileText, Upload, MessageSquare, ListChecks, ClipboardList } from 'lucide-react';
+import React, { useState } from 'react';
+import { Package, FileText, Upload, MessageSquare, ListChecks, ClipboardList, Menu, X, ChevronDown, ChevronRight, Bot } from 'lucide-react';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 
 function Sidebar({ active, onChange }) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isInternalAssistantOpen, setIsInternalAssistantOpen] = useState(true);
+
   return (
-    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col p-4">
-      <h2 className="text-xl font-semibold mb-6">Menu</h2>
-
-      <div className="mb-4">
-        <p className="text-gray-400 text-sm mb-2">Internal Assistant</p>
-
-        <button
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 ${
-            active === 'upload' ? 'bg-gray-700' : 'hover:bg-gray-800'
-          }`}
-          onClick={() => onChange('upload')}
-        >
-          <Upload size={18} /> Upload & Index
-        </button>
-
-        <button
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 ${
-            active === 'rag' ? 'bg-gray-700' : 'hover:bg-gray-800'
-          }`}
-          onClick={() => onChange('rag')}
-        >
-          <MessageSquare size={18} /> RAG Chat
-        </button>
-
-        <button
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 ${
-            active === 'project' ? 'bg-gray-700' : 'hover:bg-gray-800'
-          }`}
-          onClick={() => onChange('project')}
-        >
-          <ClipboardList size={18} /> Project Management
-        </button>
-
-        <button
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-            active === 'todo' ? 'bg-gray-700' : 'hover:bg-gray-800'
-          }`}
-          onClick={() => onChange('todo')}
-        >
-          <ListChecks size={18} /> Smart To-Do
-        </button>
+    <Card className={`${isOpen ? 'w-64' : 'w-16'} h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 rounded-none border-r`}>
+      {/* Header */}
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center justify-between">
+          {isOpen && <h2 className="text-sm font-semibold text-white truncate">AI Document Workflow </h2>}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            {isOpen ? <X size={18} /> : <Menu size={18} />}
+          </Button>
+        </div>
       </div>
 
-      <hr className="border-gray-700 my-4" />
+      {/* Menu Items */}
+      <div className="flex-1 p-2 space-y-1">
+        {/* Internal Assistant Section */}
+        <Button
+          variant="ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 text-sidebar-foreground hover:bg-sidebar-accent`}
+          onClick={() => setIsInternalAssistantOpen(!isInternalAssistantOpen)}
+        >
+          {isOpen ? (
+            <div className="flex items-center w-full">
+              <div className="w-5 flex justify-center">
+                {isInternalAssistantOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </div>
+              <div className="w-5 flex justify-center ml-2">
+                <Bot size={20} />
+              </div>
+              <span className="ml-3">Internal Assistant</span>
+            </div>
+          ) : (
+            <Bot size={20} />
+          )}
+        </Button>
 
-      <button 
-        className="flex items-center gap-2 px-4 py-2 rounded-lg mb-2 opacity-50 cursor-not-allowed"
-        disabled
-      >
-        <Package size={18} /> Product Recommendation
-      </button>
+        {/* Sub-menu items */}
+        {isInternalAssistantOpen && isOpen && (
+          <div className="space-y-1">
+            <Button
+              variant={active === 'upload' ? 'default' : 'ghost'}
+              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              onClick={() => onChange('upload')}
+            >
+              <div className="flex items-center w-full">
+                <div className="w-5"></div>
+                <div className="w-5 flex justify-center ml-2">
+                  <Upload size={16} />
+                </div>
+                <span className="ml-3">Upload & Index</span>
+              </div>
+            </Button>
 
-      <button 
-        className="flex items-center gap-2 px-4 py-2 rounded-lg opacity-50 cursor-not-allowed"
-        disabled
-      >
-        <FileText size={18} /> Contract Risk Detector
-      </button>
-    </div>
+            <Button
+              variant={active === 'rag' ? 'default' : 'ghost'}
+              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              onClick={() => onChange('rag')}
+            >
+              <div className="flex items-center w-full">
+                <div className="w-5"></div>
+                <div className="w-5 flex justify-center ml-2">
+                  <MessageSquare size={16} />
+                </div>
+                <span className="ml-3">RAG Chat</span>
+              </div>
+            </Button>
+
+            <Button
+              variant={active === 'project' ? 'default' : 'ghost'}
+              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              onClick={() => onChange('project')}
+            >
+              <div className="flex items-center w-full">
+                <div className="w-5"></div>
+                <div className="w-5 flex justify-center ml-2">
+                  <ClipboardList size={16} />
+                </div>
+                <span className="ml-3">Project Management</span>
+              </div>
+            </Button>
+
+            <Button
+              variant={active === 'todo' ? 'default' : 'ghost'}
+              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              onClick={() => onChange('todo')}
+            >
+              <div className="flex items-center w-full">
+                <div className="w-5"></div>
+                <div className="w-5 flex justify-center ml-2">
+                  <ListChecks size={16} />
+                </div>
+                <span className="ml-3">Smart To-Do</span>
+              </div>
+            </Button>
+          </div>
+        )}
+
+        {/* Other main menu items */}
+        <Button 
+          variant="ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed text-sidebar-foreground`}
+          disabled
+        >
+          {isOpen ? (
+            <div className="flex items-center w-full">
+              <div className="w-5"></div>
+              <div className="w-5 flex justify-center ml-2">
+                <Package size={20} />
+              </div>
+              <span className="ml-3">Product Recommendation</span>
+            </div>
+          ) : (
+            <Package size={20} />
+          )}
+        </Button>
+
+        <Button 
+          variant="ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed text-sidebar-foreground`}
+          disabled
+        >
+          {isOpen ? (
+            <div className="flex items-center w-full">
+              <div className="w-5"></div>
+              <div className="w-5 flex justify-center ml-2">
+                <FileText size={20} />
+              </div>
+              <span className="ml-3">Contract Risk Detector</span>
+            </div>
+          ) : (
+            <FileText size={20} />
+          )}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

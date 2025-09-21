@@ -7,19 +7,19 @@ from internal_assistant_core import settings, llm
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from langchain.schema import HumanMessage, SystemMessage
-
+# Use unified auth functions directly
 # ====================
 # Modul Microsoft To Do (Authorization Code Flow – Delegated)
 # ====================
 
 # Ambil config dari settings/env
 CLIENT_ID = settings.MS_CLIENT_ID
-CLIENT_SECRET = settings.MS_CLIENT_SECRET
+#CLIENT_SECRET = settings.MS_CLIENT_SECRET
 TENANT_ID = settings.MS_TENANT_ID
 REDIRECT_URI = os.getenv("AZURE_REDIRECT_URI", "http://localhost:8001/auth/callback")
 
-AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["Tasks.Read", "Tasks.ReadWrite"]
+#AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+#SCOPES = ["Tasks.Read", "Tasks.ReadWrite"]
 
 # Token disimpan sementara di memory (demo)
 _token_cache = {}
@@ -28,124 +28,111 @@ _token_cache = {}
 # Authentication Functions
 # ====================
 
-def build_auth_url():
-    """Bangun URL untuk Microsoft login (Authorization Code Flow)."""
-    params = {
-        "client_id": CLIENT_ID,
-        "response_type": "code",
-        "redirect_uri": REDIRECT_URI,
-        "response_mode": "query",
-        "scope": " ".join(SCOPES),
-        "state": "12345",
-    }
-    return f"{AUTHORITY}/oauth2/v2.0/authorize?{urlencode(params)}"
+# def build_auth_url():
+#     """Bangun URL untuk Microsoft login (Authorization Code Flow)."""
+#     params = {
+#         "client_id": CLIENT_ID,
+#         "response_type": "code",
+#         "redirect_uri": REDIRECT_URI,
+#         "response_mode": "query",
+#         "scope": " ".join(SCOPES),
+#         "state": "12345",
+#     }
+#     return f"{AUTHORITY}/oauth2/v2.0/authorize?{urlencode(params)}"
 
-def exchange_code_for_token(code: str):
-    """Tukar authorization code jadi access_token + refresh_token."""
-    url = f"{AUTHORITY}/oauth2/v2.0/token"
-    data = {
-        "client_id": CLIENT_ID,
-        "scope": " ".join(SCOPES),
-        "code": code,
-        "redirect_uri": REDIRECT_URI,
-        "grant_type": "authorization_code",
-        "client_secret": CLIENT_SECRET,
-    }
-    resp = requests.post(url, data=data)
-    if resp.status_code != 200:
-        raise Exception(f"Gagal tukar code ke token: {resp.text}")
+# def exchange_code_for_token(code: str):
+#     """Tukar authorization code jadi access_token + refresh_token."""
+#     url = f"{AUTHORITY}/oauth2/v2.0/token"
+#     data = {
+#         "client_id": CLIENT_ID,
+#         "scope": " ".join(SCOPES),
+#         "code": code,
+#         "redirect_uri": REDIRECT_URI,
+#         "grant_type": "authorization_code",
+#         "client_secret": CLIENT_SECRET,
+#     }
+#     resp = requests.post(url, data=data)
+#     if resp.status_code != 200:
+#         raise Exception(f"Gagal tukar code ke token: {resp.text}")
     
-    token_data = resp.json()
-    # Tambahkan timestamp untuk tracking expiry
-    token_data["received_at"] = datetime.now().isoformat()
+#     token_data = resp.json()
+#     # Tambahkan timestamp untuk tracking expiry
+#     token_data["received_at"] = datetime.now().isoformat()
     
-    # simpan di cache
-    _token_cache["token"] = token_data
-    return token_data
+#     # simpan di cache
+#     _token_cache["token"] = token_data
+#     return token_data
 
-def is_token_expired(token_data: dict) -> bool:
-    """Check apakah token sudah expired"""
-    try:
-        if "expires_in" not in token_data or "received_at" not in token_data:
-            return True
+# def is_token_expired(token_data: dict) -> bool:
+#     """Check apakah token sudah expired"""
+#     try:
+#         if "expires_in" not in token_data or "received_at" not in token_data:
+#             return True
         
-        received_at = datetime.fromisoformat(token_data["received_at"])
-        expires_in = token_data["expires_in"]  # in seconds
-        expiry_time = received_at + timedelta(seconds=expires_in)
+#         received_at = datetime.fromisoformat(token_data["received_at"])
+#         expires_in = token_data["expires_in"]  # in seconds
+#         expiry_time = received_at + timedelta(seconds=expires_in)
         
-        # Kasih buffer 5 menit sebelum expiry
-        return datetime.now() >= (expiry_time - timedelta(minutes=5))
-    except Exception:
-        return True
+#         # Kasih buffer 5 menit sebelum expiry
+#         return datetime.now() >= (expiry_time - timedelta(minutes=5))
+#     except Exception:
+#         return True
 
-def refresh_token_if_needed():
-    """Refresh token jika diperlukan"""
-    if "token" not in _token_cache:
-        return False
+# def refresh_token_if_needed():
+#     """Refresh token jika diperlukan"""
+#     if "token" not in _token_cache:
+#         return False
     
-    token_data = _token_cache["token"]
+#     token_data = _token_cache["token"]
     
-    if not is_token_expired(token_data):
-        return True  # Token masih valid
+#     if not is_token_expired(token_data):
+#         return True  # Token masih valid
     
-    # Token expired, coba refresh
-    if "refresh_token" not in token_data:
-        # Ga ada refresh token, user harus login ulang
-        _token_cache.clear()
-        return False
+#     # Token expired, coba refresh
+#     if "refresh_token" not in token_data:
+#         # Ga ada refresh token, user harus login ulang
+#         _token_cache.clear()
+#         return False
     
-    try:
-        url = f"{AUTHORITY}/oauth2/v2.0/token"
-        data = {
-            "client_id": CLIENT_ID,
-            "scope": " ".join(SCOPES),
-            "refresh_token": token_data["refresh_token"],
-            "grant_type": "refresh_token",
-            "client_secret": CLIENT_SECRET,
-        }
-        resp = requests.post(url, data=data)
+#     try:
+#         url = f"{AUTHORITY}/oauth2/v2.0/token"
+#         data = {
+#             "client_id": CLIENT_ID,
+#             "scope": " ".join(SCOPES),
+#             "refresh_token": token_data["refresh_token"],
+#             "grant_type": "refresh_token",
+#             "client_secret": CLIENT_SECRET,
+#         }
+#         resp = requests.post(url, data=data)
         
-        if resp.status_code != 200:
-            # Refresh gagal, hapus cache
-            _token_cache.clear()
-            return False
+#         if resp.status_code != 200:
+#             # Refresh gagal, hapus cache
+#             _token_cache.clear()
+#             return False
         
-        new_token = resp.json()
-        new_token["received_at"] = datetime.now().isoformat()
-        _token_cache["token"] = new_token
-        return True
+#         new_token = resp.json()
+#         new_token["received_at"] = datetime.now().isoformat()
+#         _token_cache["token"] = new_token
+#         return True
         
-    except Exception:
-        _token_cache.clear()
-        return False
+#     except Exception:
+#         _token_cache.clear()
+#         return False
 
 def get_current_token():
-    """Ambil access_token dari cache, refresh jika perlu"""
-    if not refresh_token_if_needed():
-        raise Exception("Token expired atau belum login. Silakan login ulang.")
-    return _token_cache["token"]["access_token"]
+    """Ambil access_token dari unified token manager"""
+    from unified_auth import get_unified_token
+    return get_unified_token("current_user")
 
-def is_user_logged_in() -> bool:
-    """Check apakah user sudah login dan token masih valid"""
-    try:
-        return refresh_token_if_needed()
-    except Exception:
-        return False
+# def is_user_logged_in() -> bool:
+#     """Check apakah user sudah login dan token masih valid"""
+#     from unified_auth import is_unified_authenticated
+#     return is_unified_authenticated("current_user")
 
-def get_login_status() -> str:
-    """Dapatkan status login dalam format string"""
-    try:
-        if is_user_logged_in():
-            token_data = _token_cache["token"]
-            received_at = datetime.fromisoformat(token_data["received_at"])
-            expires_in = token_data["expires_in"]
-            expiry_time = received_at + timedelta(seconds=expires_in)
-            
-            return f"✅ Login aktif. Token berlaku sampai: {expiry_time.strftime('%H:%M:%S')}"
-        else:
-            return "❌ Belum login atau token expired."
-    except Exception as e:
-        return f"❌ Error check status: {str(e)}"
+# def get_login_status() -> str:
+#     """Dapatkan status login dalam format string"""
+#     from unified_auth import get_unified_login_status
+#     return get_unified_login_status("current_user")
 
 # ====================
 # Microsoft Graph API Functions
@@ -165,8 +152,6 @@ def get_todo_lists(token: dict = None):
         return resp.json()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            # Token invalid, clear cache
-            _token_cache.clear()
             raise Exception("Token expired. Silakan login ulang.")
         raise Exception(f"Error API: {e.response.status_code} - {e.response.text}")
 
@@ -184,8 +169,6 @@ def get_todo_tasks(token: dict, list_id: str):
         return resp.json()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            # Token invalid, clear cache
-            _token_cache.clear()
             raise Exception("Token expired. Silakan login ulang.")
         elif e.response.status_code == 404:
             raise Exception(f"List dengan ID '{list_id}' tidak ditemukan.")
@@ -245,7 +228,6 @@ def create_todo_task(list_id: str, title: str, body: str = "", due_date: str = N
         return resp.json()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            _token_cache.clear()
             raise Exception("Token expired. Silakan login ulang.")
         raise Exception(f"Error membuat task: {e.response.status_code} - {e.response.text}")
 
@@ -268,7 +250,6 @@ def complete_todo_task(list_id: str, task_id: str):
         return resp.json()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            _token_cache.clear()
             raise Exception("Token expired. Silakan login ulang.")
         raise Exception(f"Error completing task: {e.response.status_code} - {e.response.text}")
 
@@ -295,7 +276,6 @@ def update_todo_task(list_id: str, task_id: str, title: str = None, body: str = 
         return resp.json()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            _token_cache.clear()
             raise Exception("Token expired. Silakan login ulang.")
         raise Exception(f"Error updating task: {e.response.status_code} - {e.response.text}")
 
