@@ -2,11 +2,15 @@ import React from 'react';
 
 const Button = React.forwardRef(({ className = "", variant = "default", size = "default", ...props }, ref) => {
   const variants = {
-    default: "bg-black text-white hover:bg-gray-800 border border-transparent",
-    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-200",
-    outline: "border border-gray-300 bg-white hover:bg-gray-50 text-gray-900",
-    ghost: "hover:bg-gray-100 text-gray-900",
-    destructive: "bg-red-600 text-white hover:bg-red-700 border border-transparent",
+    default: "bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent",
+    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent",
+    outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+    ghost: "hover:bg-accent hover:text-accent-foreground bg-transparent border-transparent",
+    destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 border border-transparent",
+    link: "text-primary underline-offset-4 hover:underline h-auto p-0",
+    // Sidebar specific variants
+    "sidebar-ghost": "hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground bg-transparent border-transparent",
+    "sidebar-default": "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 border border-transparent",
   };
 
   const sizes = {
@@ -18,7 +22,7 @@ const Button = React.forwardRef(({ className = "", variant = "default", size = "
 
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 disabled:pointer-events-none disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 disabled:pointer-events-none disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
       ref={ref}
       {...props}
     />

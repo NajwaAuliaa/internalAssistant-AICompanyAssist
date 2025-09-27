@@ -8,18 +8,19 @@ function Sidebar({ active, onChange }) {
   const [isInternalAssistantOpen, setIsInternalAssistantOpen] = useState(true);
 
   return (
-    <Card className={`${isOpen ? 'w-64' : 'w-16'} h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 rounded-none border-r`}>
+    <div 
+      className={`${isOpen ? 'w-64' : 'w-16'} h-screen flex flex-col transition-all duration-300 rounded-none border-r bg-sidebar text-sidebar-foreground border-sidebar-border shadow-sm`}
+    >
       {/* Header */}
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
-          {isOpen && <h2 className="text-sm font-semibold text-white truncate">AI Document Workflow </h2>}
+          {isOpen && <h2 className="text-sm font-semibold text-sidebar-foreground flex-1 mr-2">AI Document Workflow</h2>}
           <Button
-            variant="ghost"
-            size="sm"
+            variant="sidebar-ghost"
+            className="flex-shrink-0 w-12 h-12 p-1 hover:bg-sidebar-accent"
             onClick={() => setIsOpen(!isOpen)}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
           >
-            {isOpen ? <X size={18} /> : <Menu size={18} />}
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
         </div>
       </div>
@@ -28,8 +29,8 @@ function Sidebar({ active, onChange }) {
       <div className="flex-1 p-2 space-y-1">
         {/* Internal Assistant Section */}
         <Button
-          variant="ghost"
-          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 text-sidebar-foreground hover:bg-sidebar-accent`}
+          variant="sidebar-ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12`}
           onClick={() => setIsInternalAssistantOpen(!isInternalAssistantOpen)}
         >
           {isOpen ? (
@@ -51,8 +52,8 @@ function Sidebar({ active, onChange }) {
         {isInternalAssistantOpen && isOpen && (
           <div className="space-y-1">
             <Button
-              variant={active === 'upload' ? 'default' : 'ghost'}
-              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              variant={active === 'upload' ? 'sidebar-default' : 'sidebar-ghost'}
+              className="w-full justify-start h-10 text-sm"
               onClick={() => onChange('upload')}
             >
               <div className="flex items-center w-full">
@@ -65,8 +66,8 @@ function Sidebar({ active, onChange }) {
             </Button>
 
             <Button
-              variant={active === 'rag' ? 'default' : 'ghost'}
-              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              variant={active === 'rag' ? 'sidebar-default' : 'sidebar-ghost'}
+              className="w-full justify-start h-10 text-sm"
               onClick={() => onChange('rag')}
             >
               <div className="flex items-center w-full">
@@ -79,8 +80,8 @@ function Sidebar({ active, onChange }) {
             </Button>
 
             <Button
-              variant={active === 'project' ? 'default' : 'ghost'}
-              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              variant={active === 'project' ? 'sidebar-default' : 'sidebar-ghost'}
+              className="w-full justify-start h-10 text-sm"
               onClick={() => onChange('project')}
             >
               <div className="flex items-center w-full">
@@ -93,8 +94,8 @@ function Sidebar({ active, onChange }) {
             </Button>
 
             <Button
-              variant={active === 'todo' ? 'default' : 'ghost'}
-              className="w-full justify-start h-10 text-sidebar-foreground hover:bg-sidebar-accent text-sm"
+              variant={active === 'todo' ? 'sidebar-default' : 'sidebar-ghost'}
+              className="w-full justify-start h-10 text-sm"
               onClick={() => onChange('todo')}
             >
               <div className="flex items-center w-full">
@@ -110,8 +111,8 @@ function Sidebar({ active, onChange }) {
 
         {/* Other main menu items */}
         <Button 
-          variant="ghost"
-          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed text-sidebar-foreground`}
+          variant="sidebar-ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed`}
           disabled
         >
           {isOpen ? (
@@ -128,8 +129,8 @@ function Sidebar({ active, onChange }) {
         </Button>
 
         <Button 
-          variant="ghost"
-          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed text-sidebar-foreground`}
+          variant="sidebar-ghost"
+          className={`w-full ${isOpen ? 'justify-start' : 'justify-center'} h-12 opacity-50 cursor-not-allowed`}
           disabled
         >
           {isOpen ? (
@@ -145,7 +146,7 @@ function Sidebar({ active, onChange }) {
           )}
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 

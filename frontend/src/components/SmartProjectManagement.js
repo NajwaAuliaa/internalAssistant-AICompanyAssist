@@ -68,48 +68,92 @@ function SmartProjectApp() {
   };
 
   const sendChatMessage = async (message = currentMessage) => {
-    if (!message.trim()) return;
+  if (!message.trim()) return;
 
-    const userMessage = {
-      role: 'user',
-      content: message,
-      timestamp: new Date().toISOString()
-    };
+  const userMessage = {
+    role: 'user',
+    content: message,
+    timestamp: new Date().toISOString()
+  };
 
-    setChatMessages([...chatMessages, userMessage]);
-    setCurrentMessage('');
-    setChatLoading(true);
+  setChatMessages([...chatMessages, userMessage]);
+  setCurrentMessage('');
+  setChatLoading(true);
 
-    try {
-      const response = await fetch(`${API_BASE}/project-chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-      });
+  try {
+    const response = await fetch(`${API_BASE}/project-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
 
-      const data = await response.json();
-      
+    const data = await response.json();
+    
+    // Check if response contains job_id (background processing)
+    if (data.job_id) {
+      pollJobStatus(data.job_id);
+    } else {
+      // Fallback untuk response langsung
       const assistantMessage = {
         role: 'assistant',
         content: data.answer || 'No response received',
         timestamp: new Date().toISOString()
       };
-
       setChatMessages([...chatMessages, userMessage, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = {
-        role: 'assistant',
-        content: 'Error processing your request. Please try again.',
-        timestamp: new Date().toISOString(),
-        error: true
-      };
-      setChatMessages([...chatMessages, userMessage, errorMessage]);
+      setChatLoading(false);
     }
-    
+  } catch (error) {
+    console.error('Chat error:', error);
+    const errorMessage = {
+      role: 'assistant',
+      content: 'Error processing your request. Please try again.',
+      timestamp: new Date().toISOString(),
+      error: true
+    };
+    setChatMessages([...chatMessages, userMessage, errorMessage]);
     setChatLoading(false);
-  };
+  }
+};
 
+const pollJobStatus = async (jobId) => {
+  const interval = setInterval(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/job-status/${jobId}`);
+      const status = await response.json();
+      
+      if (status.status === 'completed') {
+        clearInterval(interval);
+        setChatLoading(false);
+        
+        const assistantMessage = {
+          role: 'assistant',
+          content: status.result,
+          timestamp: new Date().toISOString()
+        };
+        
+        setChatMessages(prev => [...prev, assistantMessage]);
+        
+      } else if (status.status === 'failed') {
+        clearInterval(interval);
+        setChatLoading(false);
+        
+        const errorMessage = {
+          role: 'assistant',
+          content: `Error: ${status.error || 'Processing failed'}`,
+          timestamp: new Date().toISOString(),
+          error: true
+        };
+        
+        setChatMessages(prev => [...prev, errorMessage]);
+      }
+      // Jika status masih 'processing', terus polling
+    } catch (error) {
+      console.error('Polling error:', error);
+      clearInterval(interval);
+      setChatLoading(false);
+    }
+  }, 2000); // Poll setiap 2 detik
+};
   const handleQuickAction = async (action) => {
     const actionMessages = {
       'list project': 'Tampilkan semua project dengan status dan progress lengkap',
@@ -130,56 +174,9 @@ function SmartProjectApp() {
     });
   };
 
-  const renderProjects = () => {
-    if (loading.projects) {
-      return <div className="text-center py-4">Loading projects...</div>;
-    }
-
-    if (!Array.isArray(projects)) {
-      return (
-        <div className="text-gray-500 text-center py-4">
-          <div>Invalid projects data format</div>
-          <button 
-            onClick={fetchProjects}
-            className="text-blue-600 underline mt-2"
-          >
-            Retry
-          </button>
-        </div>
-      );
-    }
-
-    if (projects.length === 0) {
-      return (
-        <div className="text-gray-500 text-center py-4">
-          <div>No projects found</div>
-          <button 
-            onClick={fetchProjects}
-            className="text-blue-600 underline mt-2"
-          >
-            Refresh
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        {projects.map((project, idx) => (
-          <button
-            key={idx}
-            onClick={() => fetchProjectDetail(project)}
-            className={`w-full text-left p-3 rounded-lg transition-colors ${
-              selectedProject === project 
-                ? 'bg-blue-100 border-2 border-blue-500' 
-                : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-            }`}
-          >
-            <span className="font-medium">{project}</span>
-          </button>
-        ))}
-      </div>
-    );
+  // Helper function to check if message contains table
+  const containsTable = (content) => {
+    return content.includes('|') && content.includes('---');
   };
 
   return (
@@ -191,16 +188,8 @@ function SmartProjectApp() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Quick Actions - sekarang di posisi kiri */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <List className="mr-2" size={20} />
-                Projects ({Array.isArray(projects) ? projects.length : 0})
-              </h3>
-              
-              {renderProjects()}
-            </div>
-
             <div className="bg-white rounded-lg shadow-md p-6">
               <h4 className="text-lg font-semibold mb-4">Quick Actions</h4>
               <div className="space-y-2">
@@ -248,8 +237,10 @@ function SmartProjectApp() {
             </div>
           </div>
 
+          {/* Chat Area - sekarang mengambil 2 kolom */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md flex flex-col h-[600px]">
+            <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
+
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="text-xl font-semibold flex items-center">
                   <MessageCircle className="mr-2" size={20} />
@@ -260,12 +251,15 @@ function SmartProjectApp() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {chatMessages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    {/* Flexible width for messages with tables */}
+                    <div className={`px-4 py-2 rounded-lg ${
                       msg.role === 'user' 
-                        ? 'bg-blue-600 text-white' 
+                        ? 'bg-blue-600 text-white max-w-xs lg:max-w-md' 
                         : msg.error 
-                        ? 'bg-red-50 border border-red-200 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-red-50 border border-red-200 text-red-800 max-w-xs lg:max-w-md'
+                        : containsTable(msg.content)
+                        ? 'bg-gray-100 text-gray-800 w-full max-w-full' // Full width for tables
+                        : 'bg-gray-100 text-gray-800 max-w-xs lg:max-w-md' // Limited width for normal text
                     }`}>
                       {msg.role === 'assistant' ? (
                         <MarkdownRenderer content={msg.content} />

@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "./ui/card";
@@ -13,36 +14,57 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-purple-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">🤖 Internal Assistant</CardTitle>
-          <div className="text-center text-sm text-muted-foreground">
-            Login dengan Microsoft untuk mengakses semua fitur
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
+      <Card className="w-full max-w-sm" style={{ backgroundColor: '#171717', borderColor: '#2a2a2a' }}>
+        <CardHeader className="text-center">
+          <div style={{color: '#ffffff', fontSize: '1.25rem', fontWeight: '600', lineHeight: '1.75rem'}}>
+            Login to your account
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-8">
+          {/* Premium tagline */}
+          <div className="text-center">
+            <p style={{fontSize: '0.875rem', color: '#9ca3af', fontWeight: '300', letterSpacing: '0.025em'}}>
+              Authenticate with your Microsoft credentials to access your enterprise workspace
+            </p>
+          </div>
+          
+          {/* Elegant spacing */}
+          <div className="h-8"></div>
+          
+          {/* Trust indicators */}
+          <div className="flex justify-center items-center gap-6">
+            <div className="flex items-center gap-2 text-sm" style={{color: '#9ca3af'}}>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span>Secure</span>
+            </div>
+            <div className="w-px h-4 bg-gray-600"></div>
+            <div className="flex items-center gap-2 text-sm" style={{color: '#9ca3af'}}>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Verified</span>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
           <Button 
             onClick={handleMicrosoftLogin}
-            className="w-full h-12 bg-[#0078d4] hover:bg-[#106ebe] text-white font-semibold flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl"
+            variant="outline" 
+            className="w-full hover:opacity-90"
+            style={{ backgroundColor: '#212121', borderColor: '#404040', color: '#ffffff' }}
           >
-            <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
+            <svg width="16" height="16" viewBox="0 0 21 21" fill="none" className="mr-2">
               <rect width="10" height="10" fill="#F25022"/>
               <rect x="11" width="10" height="10" fill="#7FBA00"/>
               <rect y="11" width="10" height="10" fill="#00A4EF"/>
               <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
             </svg>
-            Login dengan Microsoft
+            Login with Microsoft
           </Button>
-        </CardContent>
-        <div className="flex flex-col space-y-2 p-6 pt-0">
-          <p className="text-sm font-medium">Fitur yang tersedia:</p>
-          <div className="text-sm text-gray-600 space-y-1">
-            <div>📋 Smart Project Management</div>
-            <div>✅ Microsoft To-Do</div>
-            <div>📚 RAG Q&A Internal</div>
-          </div>
-        </div>
+        </CardFooter>
       </Card>
     </div>
   );

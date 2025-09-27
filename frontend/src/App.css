@@ -5,6 +5,21 @@
   background-color: #f5f5f5;
 }
 
+.sidebar-override {
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+  border-color: #374151 !important;
+}
+
+.sidebar-button-override {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+.sidebar-button-override:hover {
+  background-color: #374151 !important;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -496,4 +511,56 @@ h1 {
     text-align: left;
     margin: 2px 0;
   }
+
+  /* ... semua CSS yang sudah ada sebelumnya ... */
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8em;
+  }
+  
+  .tab-content {
+    padding: 20px 15px;
+  }
+  
+  .quick-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-quick {
+    text-align: left;
+    margin: 2px 0;
+  }
+}
+
+/* TAMBAHKAN DI SINI - Fix for Tailwind text visibility */
+.card h3, 
+.card label,
+.card .text-sm {
+  color: #333 !important;
+}
+
+.card p {
+  color: #666 !important;
+}
+
+/* Ensure form labels are visible */
+label {
+  color: #333 !important;
+  font-weight: 600;
+}
+
+/* CardTitle specifically */
+.card h3[class*="text-2xl"] {
+  color: #1f2937 !important;
+}
+
+.min-h-screen .card h3,
+.min-h-screen .card .text-xl {
+  color: #ffffff !important;
+}
+
+.min-h-screen .card p {
+  color: #9ca3af !important;
+}
 }

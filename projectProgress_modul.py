@@ -12,14 +12,15 @@ from unified_auth import (
     build_unified_auth_url as build_auth_url,
     is_unified_authenticated as is_user_authenticated,
     get_unified_token as get_unified_token,
-    get_unified_login_status as get_unified_login_status
+    get_unified_login_status as get_unified_login_status,
+    exchange_unified_code_for_token
 )
 
 # Auth functions now handled by unified_auth.py
 
 def get_user_token(user_id: str = "current_user") -> str:
     """Get access token for current user (delegated)"""
-    from unified_auth import get_unified_token
+    from unified_auth import get_unified_token 
     return get_unified_token(user_id)
 
 def refresh_user_token(user_id: str = "current_user") -> str:
@@ -62,12 +63,12 @@ def refresh_user_token(user_id: str = "current_user") -> str:
 
 def is_user_authenticated(user_id: str = "current_user") -> bool:
     """Check if user is authenticated"""
-    from unified_auth import is_unified_authenticated
+    from unified_auth import is_unified_authenticated  
     return is_unified_authenticated(user_id)
 
 def make_authenticated_request(url: str, user_id: str = "current_user", method: str = "GET", data: dict = None):
     """Helper function to make authenticated requests with error handling for SPA"""
-    if not is_user_authenticated(user_id):
+    if not is_user_authenticated(user_id):  
         raise Exception("User not authenticated. Please login first.")
     
     token = get_user_token(user_id)
@@ -307,6 +308,7 @@ def analyze_project_data(project_name: str, user_id: str = "current_user") -> Di
         return {"error": f"Error analyzing project: {error_msg}"}
 
 # === Generate intelligent response menggunakan LLM ===
+# === Generate intelligent response menggunakan LLM ===
 def generate_project_response(user_query: str, project_data: Dict[str, Any]) -> str:
     """
     Menggunakan LLM untuk menghasilkan jawaban yang sesuai dengan pertanyaan user
@@ -365,7 +367,7 @@ Recent Tasks Details:
                 due_info = f" (Due: {task.get('dueDateTime')})"
         context += f"- {task.get('title')}: {task.get('percentComplete', 0)}%{due_info}\n"
 
-    # Prompt untuk LLM
+    # PROMPT BARU DENGAN FORMAT TABLE
     prompt = f"""
 Anda adalah assistant yang ahli dalam project management. User bertanya: "{user_query}"
 
@@ -374,47 +376,107 @@ Berdasarkan data project di atas, berikan jawaban yang:
 2. Memberikan insight yang berguna
 3. Highlight masalah atau perhatian khusus (overdue, bottleneck, dll)
 4. Berikan saran actionable jika diperlukan
-5. Gunakan format yang mudah dibaca
+5. WAJIB gunakan format tabel Markdown untuk menampilkan daftar tasks
+6. Berikan breakdown detail per task jika user menanyakan progress
 
 Data Project:
 {context}
 
-Jawab dalam bahasa Indonesia dengan tone profesional namun friendly. Jika ada masalah atau insight penting, tonjolkan dengan emoji yang sesuai.
+IMPORTANT: Jawab dalam bahasa Indonesia dengan tone profesional namun friendly. 
+WAJIB gunakan format berikut:
+
+## 📊 Progress Project: [Nama Project]
+
+**Overall Progress: [X]%**
+
+## 📋 Daftar Tasks & Status
+
+| No | Task Name | Status | Progress | Due Date |
+|----|-----------|---------|----------|----------|
+| 1  | [Task 1]  | [Status] | [X]%     | [Date]   |
+| 2  | [Task 2]  | [Status] | [X]%     | [Date]   |
+
+## 📈 Summary & Insights
+[Berikan analisis dan recommendations]
+
+Pastikan tabel menggunakan format Markdown yang valid dan mudah dibaca.
 """
 
     try:
         response = llm.invoke(prompt)
         return response.content
     except Exception as e:
-        # Fallback ke format sederhana jika LLM gagal
-        print(f"LLM failed, using fallback: {str(e)}")
-        return _generate_fallback_response(project_data)
+        # Fallback ke format tabel juga
+        print(f"LLM failed, using table fallback: {str(e)}")
+        return _generate_fallback_table_response(project_data)
 
-def _generate_fallback_response(project_data: Dict[str, Any]) -> str:
-    """Fallback response jika LLM tidak tersedia"""
+def _generate_fallback_table_response(project_data: Dict[str, Any]) -> str:
+    """Fallback response dengan format tabel jika LLM tidak tersedia"""
     analysis = project_data['analysis']
     plan_info = project_data['plan_info']
+    raw_tasks = project_data.get('raw_tasks', [])
     
-    response = f"""📊 *Progress Project: {plan_info['title']}*
+    response = f"""## 📊 Progress Project: {plan_info['title']}
 
-📈 *Overall Progress: {analysis['completion_percentage']:.1f}%*
+**Overall Progress: {analysis['completion_percentage']:.1f}%**
 
-📋 *Status Tasks:*
-• Completed: {analysis['completed_tasks']}
-• In Progress: {analysis['in_progress_tasks']}
-• Not Started: {analysis['not_started_tasks']}
-• Total: {analysis['total_tasks']}
+### 📈 Status Overview:
+- ✅ Completed: {analysis['completed_tasks']}
+- 🔄 In Progress: {analysis['in_progress_tasks']}  
+- ⏳ Not Started: {analysis['not_started_tasks']}
+- 📋 Total: {analysis['total_tasks']}
 
 """
     
     if analysis['overdue_tasks'] > 0:
-        response += f"⚠ *Perhatian:* {analysis['overdue_tasks']} task overdue\n"
+        response += f"⚠️ **Perhatian:** {analysis['overdue_tasks']} task overdue\n\n"
     
     if analysis['upcoming_due_tasks'] > 0:
-        response += f"⏰ *Upcoming:* {analysis['upcoming_due_tasks']} task deadline {analysis['upcoming_due_task']} hari ke depan\n"
+        response += f"⏰ **Upcoming:** {analysis['upcoming_due_tasks']} task deadline dalam 3 hari ke depan\n\n"
+    
+    # Add table format
+    if raw_tasks:
+        response += """## 📋 Daftar Tasks & Status
+
+| No | Task Name | Status | Progress | Due Date |
+|----|-----------|---------|----------|----------|
+"""
+        
+        for i, task in enumerate(raw_tasks[:15], 1):  # Show first 15 tasks
+            title = task.get('title', 'Untitled')[:40] + ("..." if len(task.get('title', '')) > 40 else "")
+            percent = task.get('percentComplete', 0)
+            
+            # Determine status
+            if percent == 100:
+                status = "✅ Selesai"
+            elif percent > 0:
+                status = "🔄 Sedang Berjalan"
+            else:
+                status = "⏳ Belum Dimulai"
+            
+            # Format due date
+            due_date = "-"
+            if task.get('dueDateTime'):
+                try:
+                    due_date = task.get('dueDateTime')[:10]
+                    # Check if overdue
+                    from datetime import datetime
+                    if datetime.now() > datetime.fromisoformat(due_date):
+                        due_date = f"🔴 {due_date}"
+                except:
+                    due_date = str(task.get('dueDateTime', '-'))[:10]
+            
+            response += f"| {i} | {title} | {status} | {percent}% | {due_date} |\n"
+        
+        if len(raw_tasks) > 15:
+            response += f"\n*... dan {len(raw_tasks) - 15} task lainnya*\n"
+    
+    response += "\n## 💡 Recommendations\n"
+    response += "- Fokus pada task yang overdue untuk mengejar deadline\n"
+    response += "- Review task yang tidak ada progress untuk identify bottlenecks\n"
+    response += "- Prioritaskan task dengan due date terdekat\n"
     
     return response
-
 # === Enhanced project progress function ===
 def get_project_progress(project_name: str, user_id: str = "current_user") -> str:
     """
@@ -491,9 +553,7 @@ def clear_user_token(user_id: str = "current_user"):
 
 # === Create aliases for backward compatibility with existing code ===
 project_build_auth_url = build_auth_url
-from unified_auth import exchange_unified_code_for_token
 project_exchange_code_for_token = exchange_unified_code_for_token
-project_is_user_authenticated = is_user_authenticated
 project_get_login_status = get_login_status
 
 # (Continue with remaining functions - intelligent_project_query, compare_projects, etc.)
@@ -511,23 +571,31 @@ def intelligent_project_query(user_query: str, user_id: str = "current_user") ->
         plans = get_plans(user_id=user_id)
         available_projects = [p.get('title', '') for p in plans]
         
-        # LLM prompt untuk understanding intent dan extract project info
+        # Enhanced LLM prompt untuk understanding intent dan extract project info
         intent_prompt = f"""
 User Query: "{user_query}"
 
 Available Projects: {', '.join(available_projects)}
 
 Analyze the user query and determine:
-1. Intent (list_all, single_project, compare_projects, or general_analysis)
+1. Intent (list_all, single_project, compare_projects, general_analysis, or specific_task)
 2. Which project(s) they are asking about (exact name from available projects)
-3. What specific information they want (progress, status, issues, etc.)
+3. What specific information they want (progress, status, issues, specific task name, etc.)
+4. If asking about specific task, extract the task name/keyword
 
 Respond in JSON format:
 {{
-    "intent": "list_all|single_project|compare_projects|general_analysis",
+    "intent": "list_all|single_project|compare_projects|general_analysis|specific_task",
     "projects": ["exact project names from available list"],
-    "specific_request": "brief description of what they want to know"
+    "specific_request": "brief description of what they want to know",
+    "task_name": "specific task name if asking about a task, null otherwise"
 }}
+
+Examples:
+- "progress project X" -> intent: "single_project"
+- "jelaskan task dave di project Y" -> intent: "specific_task", task_name: "dave"
+- "bagaimana status task ABC" -> intent: "specific_task", task_name: "ABC"
+- "list semua project" -> intent: "list_all"
 
 Only return the JSON, no additional text.
 """
@@ -539,6 +607,7 @@ Only return the JSON, no additional text.
             intent = intent_data.get("intent", "single_project")
             projects = intent_data.get("projects", [])
             specific_request = intent_data.get("specific_request", "")
+            task_name = intent_data.get("task_name", "")
             
             # Route based on intent
             if intent == "list_all":
@@ -547,6 +616,9 @@ Only return the JSON, no additional text.
                 return compare_projects(projects[:3], user_id)
             elif intent == "general_analysis":
                 return analyze_all_projects_overview(user_id)
+            elif intent == "specific_task" and task_name and projects:
+                # Handle specific task query - INI YANG PENTING!
+                return get_task_specific_analysis(projects[0], task_name, specific_request, user_id)
             else:
                 # Single project - use first matched project or try fuzzy search
                 if projects:
@@ -557,14 +629,14 @@ Only return the JSON, no additional text.
         except (json.JSONDecodeError, Exception) as e:
             # Fallback ke method lama jika LLM parsing gagal
             print(f"LLM parsing failed: {str(e)}, falling back to simple processing")
-            return process_project_query(user_query, user_id)
+            return process_project_query_with_task_detection(user_query, user_id)  # Ganti dari process_project_query
             
     except Exception as e:
         error_msg = str(e)
         if "authentication" in error_msg.lower() or "login" in error_msg.lower():
             return "🔒 Authentication error. Silakan login kembali melalui tombol 'Login untuk Project Management'."
         return f"❌ Error processing query: {error_msg}"
-
+    
 def compare_projects(project_names: List[str], user_id: str = "current_user") -> str:
     """
     Membandingkan multiple projects (delegated auth version)
@@ -661,6 +733,208 @@ Hanya return nama project, tidak ada text tambahan.
             
     except Exception as e:
         return f"❌ Error searching projects: {str(e)}"
+
+# Tambahkan fungsi-fungsi ini ke projectProgress_modul.py di Project A
+
+def get_task_specific_analysis(project_name: str, task_name: str, specific_request: str = "", user_id: str = "current_user") -> str:
+    """
+    Analisis spesifik untuk satu task dalam project
+    """
+    if not is_user_authenticated(user_id):
+        return "🔒 Anda belum login ke Microsoft. Silakan login terlebih dahulu."
+    
+    try:
+        project_data = analyze_project_data(project_name, user_id)
+        
+        if "error" in project_data:
+            if project_data.get("auth_required"):
+                return "🔒 Authentication error. Silakan login kembali melalui tombol 'Login untuk Project Management'."
+            return project_data["error"]
+        
+        # Cari task yang sesuai
+        raw_tasks = project_data.get('raw_tasks', [])
+        matched_task = None
+        
+        for task in raw_tasks:
+            task_title = task.get('title', '').lower()
+            if task_name.lower() in task_title or any(word.lower() in task_title for word in task_name.split()):
+                matched_task = task
+                break
+        
+        if not matched_task:
+            available_tasks = [t.get('title', 'Untitled') for t in raw_tasks]
+            return f"❌ Task '{task_name}' tidak ditemukan dalam project '{project_name}'.\n\nTask yang tersedia: {', '.join(available_tasks)}"
+        
+        # Generate task-specific analysis
+        return generate_task_specific_response(project_name, matched_task, project_data, specific_request)
+        
+    except Exception as e:
+        return f"❌ Error analyzing task {task_name} in project {project_name}: {str(e)}"
+
+def generate_task_specific_response(project_name: str, task: dict, project_data: dict, specific_request: str = "") -> str:
+    """
+    Generate detailed response for specific task
+    """
+    task_title = task.get('title', 'Untitled')
+    task_percent = task.get('percentComplete', 0)
+    due_date = task.get('dueDateTime', '')
+    priority = task.get('priority', 5)
+    bucket_id = task.get('bucketId', '')
+    
+    # Get bucket name
+    bucket_name = "No Bucket"
+    for bucket in project_data.get('buckets', []):
+        if bucket['id'] == bucket_id:
+            bucket_name = bucket['name']
+            break
+    
+    # Format due date
+    due_info = ""
+    status_icon = ""
+    if due_date:
+        try:
+            due_date_formatted = due_date[:10]  # Get date part
+            due_info = f"Due date: {due_date_formatted}"
+            # Check if overdue
+            from datetime import datetime, timezone
+            current_date = datetime.now(timezone.utc)
+            task_due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+            if task_due < current_date and task_percent < 100:
+                due_info += " ⏰ (Overdue)"
+                status_icon = "⚠️"
+        except:
+            due_info = f"Due date: {due_date}"
+    
+    # Determine status
+    if task_percent == 100:
+        status = "Selesai"
+        status_icon = "✅"
+    elif task_percent > 0:
+        status = "Sedang berjalan"
+        status_icon = "🔄"
+    else:
+        status = "Belum dimulai"
+        status_icon = "⏳"
+    
+    # Priority mapping
+    priority_map = {1: "Urgent", 2: "Urgent", 3: "Important", 4: "Important", 
+                   5: "Medium", 6: "Medium", 7: "Medium", 8: "Low", 9: "Low", 10: "Low"}
+    priority_text = priority_map.get(priority, "Medium")
+    
+    # Generate analysis context for LLM
+    analysis = project_data['analysis']
+    context = f"""
+Project: {project_name}
+Task Analysis for: {task_title}
+
+Task Details:
+=============
+Status: {status} ({task_percent}%)
+Priority: {priority_text}
+Bucket: {bucket_name}
+{due_info}
+
+Project Context:
+================
+Total Tasks in Project: {analysis['total_tasks']}
+Completed Tasks: {analysis['completed_tasks']}
+Overall Project Progress: {analysis['completion_percentage']:.1f}%
+Tasks Overdue: {analysis['overdue_tasks']}
+
+Task Performance Context:
+This task is part of a project with {analysis['completion_percentage']:.1f}% overall completion.
+"""
+
+    prompt = f"""
+User bertanya tentang task spesifik: "{task_title}" dalam project "{project_name}".
+
+Berdasarkan data berikut, berikan analisis yang fokus pada task ini:
+
+{context}
+
+Berikan response yang mencakup:
+1. Penjelasan spesifik tentang tugas {task_title}
+2. Status dan progress detail
+3. Insight berguna tentang posisi task ini dalam project
+4. Highlight masalah atau perhatian khusus
+5. Saran actionable
+6. Format ringkas & mudah dibaca
+
+Berikan analisis yang fokus pada task ini, bukan overview project secara keseluruhan.
+Gunakan format yang professional dan mudah dipahami.
+"""
+
+    try:
+        response = llm.invoke(prompt)
+        return response.content
+    except Exception as e:
+        # Fallback response
+        return f"""
+{status_icon} **Analisis Task: {task_title}**
+
+**Status:** {status} ({task_percent}%)
+**Priority:** {priority_text}
+**Bucket:** {bucket_name}
+{due_info if due_info else "No due date set"}
+
+**Context dalam Project:**
+- Task ini adalah bagian dari project "{project_name}"
+- Project memiliki {analysis['total_tasks']} total tasks
+- Progress keseluruhan project: {analysis['completion_percentage']:.1f}%
+
+**Insight:**
+{'✅ Task ini sudah selesai dengan baik.' if task_percent == 100 else '🔄 Task ini sedang dalam progress.' if task_percent > 0 else '⏳ Task ini belum dimulai.'}
+
+**Recommendations:**
+{'Manfaatkan hasil dari task ini untuk mendukung task lain yang masih berjalan.' if task_percent == 100 else 'Fokuskan resource untuk menyelesaikan task ini sesuai timeline.' if task_percent > 0 else 'Segera mulai task ini agar tidak menghambat progress project.'}
+"""
+
+def process_project_query_with_task_detection(user_query: str, user_id: str = "current_user") -> str:
+    """
+    Enhanced fallback processing dengan task detection
+    """
+    if not is_user_authenticated(user_id):
+        return "🔒 Anda belum login ke Microsoft. Silakan login terlebih dahulu untuk mengakses data project."
+    
+    query_lower = user_query.lower()
+    
+    # Deteksi task-specific keywords
+    task_keywords = ["task", "tugas", "jelaskan task", "status task", "bagaimana task", "progress task"]
+    
+    if any(keyword in query_lower for keyword in task_keywords):
+        # Try to extract project and task name
+        plans = get_plans(user_id=user_id)
+        for plan in plans:
+            plan_name = plan.get("title", "").lower()
+            if plan_name in query_lower:
+                # Found project, now extract task name
+                # Simple extraction: look for words after "task"
+                words = user_query.split()
+                task_name = ""
+                for i, word in enumerate(words):
+                    if "task" in word.lower() and i + 1 < len(words):
+                        task_name = words[i + 1]
+                        break
+                
+                if task_name:
+                    return get_task_specific_analysis(plan.get("title", ""), task_name, "", user_id)
+    
+    # Fallback to original logic
+    if any(word in query_lower for word in ["semua", "list", "daftar", "projects", "project apa"]):
+        return list_all_projects(user_id)
+    elif any(word in query_lower for word in ["bandingkan", "compare", "vs", "versus"]):
+        plans = get_plans(user_id=user_id)
+        mentioned_projects = []
+        for plan in plans:
+            if plan.get("title", "").lower() in query_lower:
+                mentioned_projects.append(plan.get("title", ""))
+        
+        if len(mentioned_projects) >= 2:
+            return compare_projects(mentioned_projects[:3], user_id)
+        else:
+            return "Untuk perbandingan, sebutkan minimal 2 nama project. Contoh: 'bandingkan project A dengan project B'"
+    else:
+        return find_projects_by_query(user_query, user_id)
 
 def get_enhanced_project_progress(project_name: str, specific_request: str = "", user_id: str = "current_user") -> str:
     """
@@ -830,9 +1104,11 @@ class NoArgsInput(BaseModel):
     """An empty model for tools that don't require any arguments."""
     pass
 
+# Update project_tool di bagian bawah file projectProgress_modul.py Project A:
+
 project_tool = StructuredTool.from_function(
     name="project_progress",
-    description="MAIN PROJECT TOOL: Gunakan untuk semua pertanyaan terkait project dari Microsoft Planner. Tool ini intelligent dan bisa handle: single project progress, comparison multiple projects, list all projects, portfolio analysis. REQUIRES USER LOGIN FIRST. Berikan full user query sebagai input untuk processing yang optimal.",
+    description="MAIN PROJECT TOOL: Gunakan untuk semua pertanyaan terkait project dari Microsoft Planner. Tool ini intelligent dan bisa handle: single project progress, comparison multiple projects, list all projects, portfolio analysis, SPECIFIC TASK ANALYSIS. REQUIRES USER LOGIN FIRST. Berikan full user query sebagai input untuk processing yang optimal. Contoh: 'jelaskan task dave yang ada pada project ideation planner'",
     func=lambda query: intelligent_project_query(query, "current_user"),
     args_schema=ProjectQueryInput,
 )
